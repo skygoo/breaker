@@ -12,16 +12,17 @@ import akka.stream.scaladsl.Flow
 import akka.util.Timeout
 import com.neo.sk.breaker.common.AppSettings
 import akka.actor.typed.scaladsl.AskPattern._
-import com.neo.sk.breaker.Boot.roomManager
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
-import com.neo.sk.breaker.Boot.{executor, scheduler, timeout, userManager}
+import com.neo.sk.breaker.Boot.{executor, scheduler, timeout}
 import com.neo.sk.breaker.shared.ptcl.ErrorRsp
 
 import scala.util.Random
 
 /**
-  *
+  * Created by sky
+  * Date on 2019/2/2
+  * Time at 下午8:59
   */
 trait HttpService
   extends ResourceService

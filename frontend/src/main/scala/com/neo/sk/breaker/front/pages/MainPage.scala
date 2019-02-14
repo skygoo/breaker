@@ -11,9 +11,6 @@ import scala.xml.Elem
   */
 object MainPage extends PageSwitcher {
 
-
-
-
   override def switchPageByHash(): Unit = {
     val tokens = {
       val t = getCurrentHash.split("/").toList
@@ -28,7 +25,7 @@ object MainPage extends PageSwitcher {
 
 
   private val currentPage: Rx[Elem] = currentPageHash.map {
-    case Nil => .render
+    case Nil => LoginPage.render
     case _ => <div>Error Page</div>
   }
 

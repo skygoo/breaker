@@ -2,8 +2,8 @@ package com.neo.sk.breaker.common
 
 import java.util.concurrent.TimeUnit
 
-import com.neo.sk.breaker.core.game.breakerGameConfigServerImpl
-import com.neo.sk.breaker.shared.config.breakerGameConfig
+//import com.neo.sk.breaker.core.game.breakerGameConfigServerImpl
+//import com.neo.sk.breaker.shared.config.breakerGameConfig
 import com.neo.sk.utils.SessionSupport.SessionConfig
 import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.LoggerFactory
@@ -33,12 +33,12 @@ object AppSettings {
 
   val log = LoggerFactory.getLogger(this.getClass)
   val config = ConfigFactory.parseResources("product.conf").withFallback(ConfigFactory.load())
-  val breakerGameConfig:breakerGameConfig = breakerGameConfigServerImpl(ConfigFactory.parseResources("breakerGame.conf"))
+//  val breakerGameConfig:Bre = breakerGameConfigServerImpl(ConfigFactory.parseResources("breakerGame.conf"))
 
 
 
   val appConfig = config.getConfig("app")
-  val dependence = config.getConfig("dependence")
+//  val dependence = config.getConfig("dependence")
 
   val personLimit = appConfig.getInt("breakerGameRoomManager.personLimit")
   val supportLiveLimit = appConfig.getBoolean("breakerGameRoomManager.supportLiveLimit")

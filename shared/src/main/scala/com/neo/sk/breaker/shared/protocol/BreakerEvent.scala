@@ -20,6 +20,9 @@ object BreakerEvent {
 
   sealed trait WsMsgServer extends WsMsgSource
 
+  final case class PingPackage(sendTime:Long) extends WsMsgServer with WsMsgFront
+
+
   sealed trait GameEvent {
     val frame:Long
   }

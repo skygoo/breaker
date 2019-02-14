@@ -52,13 +52,13 @@ package object model {
     }
 
     def getAngle(center: Point): Byte = {
-      val y_i=y - center.y
-      val x_i=x - center.x
-      val angle=math.atan2(y_i, x_i)/3.14*180
-      if(y_i<=0){
-        ((math.round(angle)/3)%120).toByte
-      }else{
-        (((360-math.round(angle))/3)%120).toByte
+      val y_i = y - center.y
+      val x_i = x - center.x
+      val angle = math.atan2(y_i, x_i) / 3.14 * 180
+      if (y_i <= 0) {
+        ((math.round(angle) / 3) % 120).toByte
+      } else {
+        (((360 - math.round(angle)) / 3) % 120).toByte
       }
     }
 
@@ -86,7 +86,10 @@ package object model {
       o match {
         case t: Rectangle =>
           intersects(t)
-
+        case t:Circle=>
+          intersects(t)
+        case t:Triangle=>
+          intersects(t)
         case _ =>
           false
       }
@@ -115,6 +118,15 @@ package object model {
         Point(dx1, dy1).distance(relativeCircleCenter) < r.r
       }
     }
+
+    def intersects(r: Triangle): Boolean = {
+      val (rx, rw, ry, rh) = (r.topLeft.x, r.downRight.x, r.topLeft.y, r.downRight.y)
+      val (tx, tw, ty, th) = (topLeft.x, downRight.x, topLeft.y, downRight.y)
+      (rw < rx || rw > tx) &&
+        (rh < ry || rh > ty) &&
+        (tw < tx || tw > rx) &&
+        (th < ty || th > ry)
+    }
   }
 
   case class Circle(center: Point, r: Float) extends Shape {
@@ -126,6 +138,7 @@ package object model {
       o match {
         case t: Rectangle => intersects(t)
         case t: Circle => intersects(t)
+        case t:Triangle=> intersects(t)
       }
     }
 
@@ -135,6 +148,62 @@ package object model {
 
     def intersects(r: Circle): Boolean = {
       r.center.distance(this.center) <= (r.r + this.r)
+    }
+
+    def intersects(triangle: model.Triangle):Boolean={
+      triangle.intersects(this)
+    }
+  }
+
+  /**
+    * 三角形，目前检测与矩形相同*/
+  case class Triangle(topLeft: Point, downRight: Point, `type`: Byte) extends Shape {
+    override protected var position: Point = (topLeft + downRight) / 2
+    private val width: Float = math.abs(downRight.x - topLeft.x)
+    private val height: Float = math.abs(downRight.y - topLeft.y)
+
+
+    override def isIntersects(o: Shape): Boolean = {
+      o match {
+        case t: Triangle =>
+          intersects(t)
+
+        case _ =>
+          false
+      }
+    }
+
+    def intersects(r: Triangle): Boolean = {
+      val (rx, rw, ry, rh) = (r.topLeft.x, r.downRight.x, r.topLeft.y, r.downRight.y)
+      val (tx, tw, ty, th) = (topLeft.x, downRight.x, topLeft.y, downRight.y)
+      (rw < rx || rw > tx) &&
+        (rh < ry || rh > ty) &&
+        (tw < tx || tw > rx) &&
+        (th < ty || th > ry)
+    }
+
+    def intersects(r: Rectangle): Boolean = {
+      val (rx, rw, ry, rh) = (r.topLeft.x, r.downRight.x, r.topLeft.y, r.downRight.y)
+      val (tx, tw, ty, th) = (topLeft.x, downRight.x, topLeft.y, downRight.y)
+
+
+      (rw < rx || rw > tx) &&
+        (rh < ry || rh > ty) &&
+        (tw < tx || tw > rx) &&
+        (th < ty || th > ry)
+    }
+
+    def intersects(r: Circle): Boolean = {
+      if (r.center > topLeft && r.center < downRight) {
+        true
+      } else {
+        val relativeCircleCenter: Point = r.center - position
+        val dx = math.min(relativeCircleCenter.x, width / 2)
+        val dx1 = math.max(dx, -width / 2)
+        val dy = math.min(relativeCircleCenter.y, height / 2)
+        val dy1 = math.max(dy, -height / 2)
+        Point(dx1, dy1).distance(relativeCircleCenter) < r.r
+      }
     }
   }
 
