@@ -45,9 +45,6 @@ abstract class GameHolder(name: String) extends NetworkInfo {
       println(exception.getCause)
   }
 
-
-  protected var firstCome = true
-
   protected val gameStateVar: Var[Int] = Var(GameState.firstCome)
   protected var gameState: Int = GameState.firstCome
 
@@ -149,34 +146,16 @@ abstract class GameHolder(name: String) extends NetworkInfo {
         println(s"等待同步数据")
         gameContainerOpt.foreach(_.drawGameLoading())
       case GameState.play =>
-
-        /** */
-        if(tickCount % rankCycle == 1){
-          gameContainerOpt.foreach(_.updateRanks())
-          gameContainerOpt.foreach(t => t.rankUpdated = true)
-        }
         gameContainerOpt.foreach(_.update())
         logicFrameTime = System.currentTimeMillis()
         ping()
-        tickCount += 1
 
       case GameState.stop =>
+        //remind 此处需要注意
         dom.document.getElementById("input_mask_id").asInstanceOf[dom.html.Div].focus()
-        if(tickCount % rankCycle == 1){
-          gameContainerOpt.foreach(_.updateRanks())
-          gameContainerOpt.foreach(t => t.rankUpdated = true)
-        }
-        gameContainerOpt.foreach{r =>
-          r.update()
-          if(!r.isKillerAlive(r.getCurTankId)){
-            val newWatchId = r.change2OtherTank
-            r.changeTankId(newWatchId)
-          }
-        }
+        gameContainerOpt.foreach{r =>r.update()}
         logicFrameTime = System.currentTimeMillis()
         ping()
-        tickCount += 1
-
 
       case _ => println(s"state=$gameState failed")
     }
@@ -185,7 +164,7 @@ abstract class GameHolder(name: String) extends NetworkInfo {
 //  private def drawGame(offsetTime: Long) = {
 //    gameContainerOpt.foreach(_.drawGame(offsetTime, getNetworkLatency, dateSize))
   private def drawGame(offsetTime: Long) = {
-    gameContainerOpt.foreach(_.drawGame(offsetTime, getNetworkLatency,dataSizeList,supportLiveLimit))
+    gameContainerOpt.foreach(_.drawGame(offsetTime, getNetworkLatency))
   }
 
 
@@ -209,5 +188,5 @@ abstract class GameHolder(name: String) extends NetworkInfo {
   protected def wsMessageHandler(data: BreakerEvent.WsMsgServer)
 
 
-  protected def getCanvasUnit(canvasWidth: Float): Int = (canvasWidth / Constants.WindowView.x).toInt
+  protected def getCanvasUnit(canvasWidth: Float): Int = /*(canvasWidth / Constants.WindowView.x).toInt*/ 3
 }

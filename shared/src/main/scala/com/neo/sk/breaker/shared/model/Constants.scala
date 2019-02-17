@@ -28,11 +28,6 @@ object Constants {
     val r = 5.5
   }
 
-  object LittleMap {
-    val w = 25
-    val h = 20
-  }
-
   object SmallBullet{
     val num = 4
     val height = 5

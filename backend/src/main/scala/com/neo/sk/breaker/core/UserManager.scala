@@ -30,7 +30,7 @@ object UserManager {
 
   private val log = LoggerFactory.getLogger(this.getClass)
   trait Command
-  final case class GetWebSocketFlow(replyTo:ActorRef[Flow[Message,Message,Any]], playerInfo:UserProtocol.UserInfo, roomId:Option[Long] = None) extends Command
+  final case class GetWebSocketFlow(replyTo:ActorRef[Flow[Message,Message,Any]], playerInfo:UserProtocol.UserInfo) extends Command
 
   def create(): Behavior[Command] = {
     log.debug(s"UserManager start...")
@@ -50,20 +50,20 @@ object UserManager {
                   ): Behavior[Command] = {
     Behaviors.receive[Command] { (ctx, msg) =>
       msg match {
-        case GetWebSocketFlow(replyTo, playerInfo, roomIdOpt) =>
+        case GetWebSocketFlow(replyTo, playerInfo) =>
           //remind 确保playerId
           playerInfo.playerId match {
             case Some(value)=>
               val userActor=getUserActor(ctx,playerInfo)
               replyTo ! getWebSocketFlow(userActor)
               userActor ! UserActor.ChangeBehaviorToInit
-              userActor ! UserActor.WsCreateSuccess(roomIdOpt)
+              userActor ! UserActor.WsCreateSuccess
             case None=>
               val uid=Constants.BreakerGameUserIdPrefix+uidGenerator.getAndIncrement().toString
               val userActor=getUserActor(ctx,playerInfo.copy(playerId = Some(uid)))
               replyTo ! getWebSocketFlow(userActor)
               userActor ! UserActor.ChangeBehaviorToInit
-              userActor ! UserActor.WsCreateSuccess(roomIdOpt)
+              userActor ! UserActor.WsCreateSuccess
           }
           Behaviors.same
       }

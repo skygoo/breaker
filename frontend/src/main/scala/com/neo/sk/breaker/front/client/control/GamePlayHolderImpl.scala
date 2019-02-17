@@ -3,9 +3,10 @@ package com.neo.sk.breaker.front.client.control
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.neo.sk.breaker.front.common.Routes
-import com.neo.sk.breaker.front.components.StartGameModal
-import com.neo.sk.breaker.front.utils.Shortcut
-import com.neo.sk.breaker.shared.model.Constants
+import com.neo.sk.breaker.front.pages.LoginPage
+import com.neo.sk.breaker.front.utils.{JsFunc, Shortcut}
+import com.neo.sk.breaker.shared.game.GameContainerClientImpl
+import com.neo.sk.breaker.shared.model.{Constants, Point}
 import com.neo.sk.breaker.shared.model.Constants.GameState
 import com.neo.sk.breaker.shared.protocol.BreakerEvent._
 import com.neo.sk.breaker.shared.protocol.{BreakerEvent, UserProtocol}
@@ -21,7 +22,7 @@ import scala.xml.Elem
   * Date: 2018/10/29
   * Time: 13:00
   */
-class GamePlayHolderImpl(name: String, playerInfoOpt: UserProtocol.UserInfo) extends GameHolder(name) {
+class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extends GameHolder(name) {
   private[this] val actionSerialNumGenerator = new AtomicInteger(0)
  private var lastMouseMoveAngle: Byte = 0
   private val perMouseMoveFrame = 3
@@ -31,7 +32,6 @@ class GamePlayHolderImpl(name: String, playerInfoOpt: UserProtocol.UserInfo) ext
   private var poKeyBoardFrame = 0L
   private var eKeyBoardState4AddBlood = true
   private val preExecuteFrameOffset = Constants.PreExecuteFrameOffset
-  private val startGameModal = new StartGameModal(gameStateVar, start, playerInfoOpt)
 
   private val watchKeys = Set(
     KeyCode.Left,
@@ -57,41 +57,13 @@ class GamePlayHolderImpl(name: String, playerInfoOpt: UserProtocol.UserInfo) ext
 
   def getActionSerialNum: Byte = (actionSerialNumGenerator.getAndIncrement()%127).toByte
 
-  def getStartGameModal(): Elem = {
-    startGameModal.render
-  }
-
-  private def start(name: String, roomIdOpt: Option[Long]): Unit = {
+  def start: Unit = {
     canvas.getCanvas.focus()
     dom.window.cancelAnimationFrame(nextFrame)
     Shortcut.cancelSchedule(timer)
-    if (firstCome) {
-      firstCome = false
-      addUserActionListenEvent()
-      setGameState(GameState.loadingPlay)
-      webSocketClient.setup(Routes.getJoinGameWebSocketUri(playerInfoOpt, roomIdOpt))
-      //      webSocketClient.sendMsg(TankGameEvent.StartGame(roomIdOpt,None))
-      gameLoop()
-
-    } else if (webSocketClient.getWsState) {
-      gameContainerOpt match {
-        case Some(gameContainer) =>
-          gameContainerOpt.foreach(_.changeTankId(gameContainer.myTankId))
-          if (Constants.supportLiveLimit) {
-            webSocketClient.sendMsg(TankGameEvent.RestartGame(Some(gameContainer.myTankId), name))
-          } else {
-            webSocketClient.sendMsg(TankGameEvent.RestartGame(None, name))
-          }
-
-        case None =>
-          webSocketClient.sendMsg(TankGameEvent.RestartGame(None, name))
-      }
-      setGameState(GameState.loadingPlay)
-      gameLoop()
-
-    } else {
-      JsFunc.alert("网络连接失败，请重新刷新")
-    }
+    setGameState(GameState.loadingPlay)
+    webSocketClient.setup(Routes.getJoinGameWebSocketUri(playerInfo))
+    gameLoop()
   }
 
   private def addUserActionListenEvent(): Unit = {
@@ -99,28 +71,19 @@ class GamePlayHolderImpl(name: String, playerInfoOpt: UserProtocol.UserInfo) ext
     canvas.getCanvas.onmousemove = { e: dom.MouseEvent =>
       val point = Point(e.clientX.toFloat, e.clientY.toFloat) + Point(24, 24)
       val theta = point.getTheta(canvasBoundary * canvasUnit / 2).toFloat
-      val angle = point.getAngle(canvasBoundary * canvasUnit / 2)
-      //remind tank自身流畅显示
-      //fixme 此处序列号是否存疑
-      val preMMFAction = TankGameEvent.UserMouseMove(gameContainerOpt.get.myTankId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta,-1)
-      gameContainerOpt.get.preExecuteUserEvent(preMMFAction)
-      if (gameContainerOpt.nonEmpty && gameState == GameState.play && lastMoveFrame+perMouseMoveFrame < gameContainerOpt.get.systemFrame) {
-        if (lastMouseMoveAngle!=angle) {
-          lastMouseMoveAngle = angle
-          lastMoveFrame = gameContainerOpt.get.systemFrame
-          val preMMBAction = TankGameEvent.UM(gameContainerOpt.get.myTankId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, angle, getActionSerialNum)
-          sendMsg2Server(preMMBAction) //发送鼠标位置
-          e.preventDefault()
-        }
+      if (gameContainerOpt.nonEmpty && gameState == GameState.play ) {
+        val preMMFAction = BreakerEvent.UserMouseMove(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta,-1)
+        gameContainerOpt.get.preExecuteUserEvent(preMMFAction)
       }
     }
     canvas.getCanvas.onclick = { e: MouseEvent =>
       if (gameContainerOpt.nonEmpty && gameState == GameState.play) {
-        val tank=gameContainerOpt.get.tankMap.get(gameContainerOpt.get.myTankId)
+        val tank=gameContainerOpt.get.breakMap.get(gameContainerOpt.get.myBreakId)
         if(tank.nonEmpty&&tank.get.getBulletSize()>0){
           val point = Point(e.clientX.toFloat, e.clientY.toFloat) + Point(24, 24)
           val theta = point.getTheta(canvasBoundary * canvasUnit / 2).toFloat
-          val preExecuteAction = TankGameEvent.UC(gameContainerOpt.get.myTankId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta, getActionSerialNum)
+          val preExecuteAction = BreakerEvent.UC(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta, getActionSerialNum)
+          gameContainerOpt.get.preExecuteUserEvent(preExecuteAction)
           sendMsg2Server(preExecuteAction) //发送鼠标位置
           e.preventDefault()
         }
@@ -129,31 +92,21 @@ class GamePlayHolderImpl(name: String, playerInfoOpt: UserProtocol.UserInfo) ext
     }
   }
 
-  override protected def setKillCallback(tank: Tank) = {
-    if (gameContainerOpt.nonEmpty&&tank.tankId ==gameContainerOpt.get.tankId) {
-      if (tank.lives <= 1) setGameState(GameState.stop)
-    }
-  }
-
   override protected def wsMessageHandler(data: WsMsgServer): Unit = {
+    println(data.getClass)
     data match {
-      case e: WsSuccess =>
+      case WsSuccess =>
         webSocketClient.sendMsg(BreakerEvent.StartGame)
 
-      case e: TankGameEvent.YourInfo =>
-        println(s"new game the id is ${e.tankId}=====${e.name}")
+      case e: BreakerEvent.YourInfo =>
+        println(s"new game the id is ${e.breakId}=====${e.name}")
         println(s"玩家信息${e}")
-        timer = Shortcut.schedule(gameLoop, e.config.frameDuration / e.config.playRate)
-        //        audioForBgm.play()
+        timer = Shortcut.schedule(gameLoop, e.config.frameDuration)
         /**
           * 更新游戏数据
           **/
-        gameContainerOpt = Some(GameContainerClientImpl(drawFrame, ctx, e.config, e.userId, e.tankId, e.name, canvasBoundary, canvasUnit, setKillCallback, versionInfoOpt))
-        gameContainerOpt.get.changeTankId(e.tankId)
-      //        gameContainerOpt.foreach(e =>)
-
-      case e: TankGameEvent.YouAreKilled =>
-        gameContainerOpt.foreach(_.updateDamageInfo(e.killTankNum, e.name, e.damageStatistics))
+        gameContainerOpt = Some(GameContainerClientImpl(e.config,drawFrame, ctx, e.playerId, e.breakId, e.name, canvasBoundary, canvasUnit))
+        LoginPage.playerInfo=playerInfo.copy(nickName = e.name,playerId = Some(e.playerId))
 
       case e: BreakerEvent.SyncGameState =>
         gameContainerOpt.foreach(_.receiveGameContainerState(e.state))
@@ -162,6 +115,7 @@ class GamePlayHolderImpl(name: String, playerInfoOpt: UserProtocol.UserInfo) ext
         gameContainerOpt.foreach(_.receiveGameContainerAllState(e.gState))
         dom.window.cancelAnimationFrame(nextFrame)
         nextFrame = dom.window.requestAnimationFrame(gameRender())
+        addUserActionListenEvent()
         setGameState(GameState.play)
 
       case e: UserActionEvent =>

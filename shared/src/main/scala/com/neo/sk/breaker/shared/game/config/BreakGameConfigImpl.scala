@@ -74,6 +74,8 @@ case class BreakGameConfigImpl(
                                 ballParameters: BallParameters,
                                 obstacleParameters: ObstacleParameters
                               ) extends BreakGameConfig {
+  def getBreakGameConfigImpl(): BreakGameConfigImpl=this
+
   val ballSpeed: Point = Point(ballParameters.ballSpeed, 0)
 
   val ballMaxFly: Byte = ballParameters.maxFly

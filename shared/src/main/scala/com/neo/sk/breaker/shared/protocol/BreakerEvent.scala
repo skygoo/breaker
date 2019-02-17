@@ -1,6 +1,7 @@
 package com.neo.sk.breaker.shared.protocol
 
-import com.neo.sk.breaker.shared.`object`.{BreakState, ObstacleState}
+import com.neo.sk.breaker.shared.`object`.{BallState, BreakState, ObstacleState}
+import com.neo.sk.breaker.shared.game.config.BreakGameConfigImpl
 
 /**
   * Created by sky
@@ -9,7 +10,10 @@ import com.neo.sk.breaker.shared.`object`.{BreakState, ObstacleState}
   */
 object BreakerEvent {
   final case class GameContainerAllState(
-                                          f:Long
+                                          f:Long,
+                                          breakers:List[BreakState],
+                                          balls:List[BallState],
+                                          obstacle:List[ObstacleState]
                                         )
 
   final case class GameContainerState(
@@ -32,7 +36,10 @@ object BreakerEvent {
 
   sealed trait WsMsgServer extends WsMsgSource
 
-  final case class WsSuccess(roomId:Option[Long]) extends WsMsgServer
+  case object DecodeError extends WsMsgServer
+
+  case object WsSuccess extends WsMsgServer
+  final case class YourInfo(playerId:String, breakId:Int, name:String, config:BreakGameConfigImpl) extends WsMsgServer
 
   final case class UserJoinRoom(tankState:BreakState, override val frame: Long) extends  UserEvent with WsMsgServer
   final case class UserLeftRoom(playerId:String, name:String, breakId:Int, override val frame:Long) extends UserEvent with WsMsgServer
@@ -53,8 +60,13 @@ object BreakerEvent {
     val serialNum:Byte
   }
 
+  final case class UserMouseMove(breakId:Int, override val frame:Long, d:Float, override val serialNum:Byte) extends UserActionEvent
+
   final case class UC(breakId:Int,override val frame:Long,d:Float,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
   type UserMouseClick = UC
+
+  final case class GenerateBall(override val frame:Long, ball:BallState, s:Boolean) extends EnvironmentEvent with WsMsgServer
+
 
   /**生成砖块*/
   final case class GenerateObstacle(override val frame:Long,obstacleState: ObstacleState) extends EnvironmentEvent with WsMsgServer

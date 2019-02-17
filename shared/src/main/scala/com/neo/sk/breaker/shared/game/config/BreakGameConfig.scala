@@ -8,6 +8,8 @@ import com.neo.sk.breaker.shared.model.Point
   * Time at 下午4:15
   */
 trait BreakGameConfig {
+  def getBreakGameConfigImpl(): BreakGameConfigImpl
+
   val esRecoverSupport: Boolean = true
 
   val totalRow = 15

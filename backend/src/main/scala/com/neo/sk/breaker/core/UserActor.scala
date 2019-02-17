@@ -30,6 +30,9 @@ object UserActor {
 
   trait Command
 
+  @deprecated
+  case class DispatchMsg(msg:BreakerEvent.WsMsgSource) extends Command
+
   case class WebSocketMsg(reqOpt: Option[BreakerEvent.WsMsgFront]) extends Command
 
   case object CompleteMsgFront extends Command
@@ -41,7 +44,7 @@ object UserActor {
 
   case class UserFrontActor(actor:ActorRef[BreakerEvent.WsMsgSource]) extends Command
 
-  case class WsCreateSuccess(roomId:Option[Long]) extends Command
+  case object WsCreateSuccess extends Command
 
   case class UserLeft[U](actorRef:ActorRef[U]) extends Command
 
@@ -113,11 +116,19 @@ object UserActor {
 
         case UserLeft(actor) =>
           ctx.unwatch(actor)
+          roomManager ! ActorProtocol.LeftRoom(userInfo)
+          Behaviors.stopped
+
+        case ChangeBehaviorToInit=>
+          Behaviors.same
+
+        case msg:TimeOut=>
+          log.debug(s"${ctx.self.path} is time out when busy,msg=${msg.msg}")
           Behaviors.stopped
 
         case unKnowMsg =>
           stashBuffer.stash(unKnowMsg)
-          log.warn(s"got unknown msg: $unKnowMsg")
+          log.warn(s"init got unknown msg: $unKnowMsg")
           Behavior.same
       }
     }
@@ -130,27 +141,84 @@ object UserActor {
   ): Behavior[Command] =
     Behaviors.receive[Command] { (ctx, msg) =>
       msg match {
-        case msg:WsCreateSuccess =>
-          frontActor ! BreakerEvent.Wrap(BreakerEvent.WsSuccess(msg.roomId).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+        case WsCreateSuccess =>
+          frontActor ! BreakerEvent.Wrap(BreakerEvent.WsSuccess.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
           Behaviors.same
 
         case WebSocketMsg(reqOpt) =>
           reqOpt match {
-            case Some(t:BreakerEvent.StartGame) =>
+            case Some(BreakerEvent.StartGame) =>
               log.info("get ws msg startGame")
               roomManager ! ActorProtocol.JoinRoom(userInfo,ctx.self,frontActor)
-              idle(userInfo,frontActor)
             case _ =>
-              Behaviors.same
           }
+          Behaviors.same
+
+        case msg:ActorProtocol.JoinRoomSuccess=>
+          frontActor ! BreakerEvent.Wrap(BreakerEvent.YourInfo(msg.breaker.playerId,msg.breaker.breakId,msg.breaker.name,msg.config).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+          switchBehavior(ctx,"play",play(userInfo,frontActor,msg.roomActor))
+
 
         case UserLeft(actor) =>
           ctx.unwatch(actor)
           Behaviors.stopped
 
+        case ChangeBehaviorToInit=>
+          switchBehavior(ctx, "init", init(userInfo))
+
+        case msg:TimeOut=>
+          log.debug(s"${ctx.self.path} is time out when busy,msg=${msg.msg}")
+          Behaviors.stopped
+
         case unKnowMsg =>
           stashBuffer.stash(unKnowMsg)
-          log.warn(s"got unknown msg: $unKnowMsg")
+          log.warn(s"idle got unknown msg: $unKnowMsg")
+          Behavior.same
+      }
+    }
+
+  private def play(
+                    userInfo: UserProtocol.UserInfo,
+                    frontActor:ActorRef[BreakerEvent.WsMsgSource],
+                    roomActor: ActorRef[RoomActor.Command])(
+                    implicit stashBuffer:StashBuffer[Command],
+                    timer:TimerScheduler[Command],
+                    sendBuffer:MiddleBufferInJvm
+                  ): Behavior[Command] =
+    Behaviors.receive[Command] { (ctx, msg) =>
+      msg match {
+        case WebSocketMsg(reqOpt) =>
+          if(reqOpt.nonEmpty){
+            reqOpt.get match{
+              case t:BreakerEvent.UserActionEvent =>
+                roomActor ! RoomActor.WebSocketMsg(t)
+                Behaviors.same
+
+              case t: BreakerEvent.PingPackage =>
+                frontActor ! BreakerEvent.Wrap(t.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+                Behaviors.same
+
+              case _ =>
+                Behaviors.same
+            }
+          }else{
+            Behaviors.same
+          }
+
+        case msg:DispatchMsg=>
+          frontActor ! msg.msg
+          Behaviors.same
+
+        case ChangeBehaviorToInit=>
+          switchBehavior(ctx, "init", init(userInfo))
+
+        case msg:TimeOut=>
+          log.debug(s"${ctx.self.path} is time out when busy,msg=${msg.msg}")
+          Behaviors.stopped
+
+        case unKnowMsg =>
+          stashBuffer.stash(unKnowMsg)
+          log.warn(s"play got unknown msg: $unKnowMsg")
           Behavior.same
       }
     }

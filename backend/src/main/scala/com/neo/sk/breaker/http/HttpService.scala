@@ -15,7 +15,10 @@ import akka.actor.typed.scaladsl.AskPattern._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import com.neo.sk.breaker.Boot.{executor, scheduler, timeout}
+import com.neo.sk.breaker.core.UserManager
 import com.neo.sk.breaker.shared.ptcl.ErrorRsp
+import com.neo.sk.breaker.Boot.{executor, roomManager, scheduler, timeout, userManager}
+import com.neo.sk.breaker.shared.protocol.UserProtocol.UserInfo
 
 import scala.util.Random
 
@@ -49,9 +52,20 @@ trait HttpService
 
   lazy val routes: Route = pathPrefix("breaker"){
     resourceRoutes ~
-      (pathPrefix("play") & get){
+      (pathPrefix("game") & get){
         pathEndOrSingleSlash{
           getFromResource("html/index.html")
+        }~path("join"){
+          parameter(
+            'name,
+            'userId.as[String].?,
+            'playerId.as[String].?
+          ){ (name,userId,playerId) =>
+            val flowFuture:Future[Flow[Message,Message,Any]] = userManager ? (UserManager.GetWebSocketFlow(_,UserInfo(name,userId,playerId)))
+            dealFutureResult(
+              flowFuture.map(t => handleWebSocketMessages(t))
+            )
+          }
         }
       }
   }

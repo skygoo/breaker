@@ -1,5 +1,6 @@
 package com.neo.sk.breaker.shared.`object`
 
+import com.neo.sk.breaker.shared.`object`
 import com.neo.sk.breaker.shared.game.config.BreakGameConfig
 import com.neo.sk.breaker.shared.model.Point
 
@@ -20,7 +21,52 @@ case class Breaker(
                     name: String,
                     override protected var position: Point
                   )extends RectangleObjectOfGame with ObstacleBreak {
+  def this(config: BreakGameConfig,state:BreakState){
+    this(config,state.playerId,state.breakId,state.name,state.position)
+  }
   override protected val height: Float = config.obstacleWidth
   override protected val width: Float = config.obstacleWidth
   override protected val collisionOffset: Float = config.obstacleWO
+
+  protected var curBulletNum:Int=1
+  protected var gunDirection:Float=0
+  protected var bulletLevel:Byte=1 //子弹等级=1
+
+  // 获取坦克状态
+  def getBreakState():BreakState = {
+    BreakState(playerId,breakId,name,position)
+  }
+
+  def setTankGunDirection(a:Byte) = {
+    val a_d=a.toDouble*3
+    val theta=if(a<60){
+      a_d*3.14/180
+    }else{
+      (360-a_d)*3.14/180
+    }
+    gunDirection = theta.toFloat
+  }
+
+  def setTankGunDirection(d:Float) = {
+    gunDirection = d
+  }
+
+  // 获取发射子弹位置
+  private def getLaunchBulletPosition():Point = {
+    position + Point(0,0).rotate(gunDirection)
+  }
+
+  private def getTankBulletDamage():Int = {
+    if(bulletLevel > 3) config.getBallDamage(3)
+    else config.getBallDamage(bulletLevel)
+  }
+
+  def getBulletSize():Int = curBulletNum
+
+  def launchBullet():Option[(Float,Point,Int)] = {
+    if(curBulletNum > 0){
+      curBulletNum = curBulletNum - 1
+      Some(gunDirection,getLaunchBulletPosition(),getTankBulletDamage())
+    }else None
+  }
 }

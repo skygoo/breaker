@@ -11,33 +11,26 @@ import org.scalajs.dom
 object Routes {
 
   val base = "/breaker"
+
   val getRoomListRoute = base + "/getRoomIdList"
 
-  def wsJoinGameUrl(name: String, roomIdOpt: Option[Long]) = {
-    base + s"/game/join?name=${name}" +
-      (roomIdOpt match {
-        case Some(roomId) => s"&roomId=$roomId"
-        case None => ""
-      })
+  def getImgUrl(imgName:String) = base + s"/static/img/${imgName}"
+
+  def wsJoinGameUrl(name: String) = {
+    base + s"/game/join?name=$name"
   }
 
-  def wsJoinGameUrl(name: String, userId: String, userName: String, roomIdOpt: Option[Long]): String = {
-    base + s"/game/userJoin?name=$name&userId=$userId&userName=$userName" +
-      (roomIdOpt match {
-        case Some(roomId) =>
-          s"&roomId=$roomId"
-        case None =>
-          ""
-      })
+  def wsJoinGameUrl(name: String, userId: String, playerId: String): String = {
+    base + s"/game/join?name=$name&userId=$userId&playerId=$playerId"
   }
 
-  def getJoinGameWebSocketUri(playerInfo: UserInfo, roomIdOpt: Option[Long]): String = {
+  def getJoinGameWebSocketUri(playerInfo: UserInfo): String = {
     val wsProtocol = if (dom.document.location.protocol == "https:") "wss" else "ws"
     playerInfo.playerId match {
       case Some(p) =>
-        s"$wsProtocol://${dom.document.location.host}${Routes.wsJoinGameUrl(playerInfo.nickName, playerInfo.userName.getOrElse(""), playerInfo.playerId.getOrElse(""), roomIdOpt)}"
+        s"$wsProtocol://${dom.document.location.host}${Routes.wsJoinGameUrl(playerInfo.nickName, playerInfo.userName.getOrElse(""), playerInfo.playerId.getOrElse(""))}"
       case None =>
-        s"$wsProtocol://${dom.document.location.host}${Routes.wsJoinGameUrl(playerInfo.nickName, roomIdOpt)}"
+        s"$wsProtocol://${dom.document.location.host}${Routes.wsJoinGameUrl(playerInfo.nickName)}"
     }
   }
 

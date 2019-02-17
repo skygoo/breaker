@@ -39,7 +39,6 @@ trait EsRecover { this:GameContainerClientImpl =>
         val curFrame = this.systemFrame
         handleGameContainerAllState(gameContainerAllState)
         //同步所有数据
-        removeKillInfoByRollback(frame)
         (frame until curFrame).foreach{ f =>
           this.addGameEvents(f,gameEventHistoryMap.getOrElse(f,Nil),actionEventHistoryMap.getOrElse(f,Nil))
           this.rollbackUpdate()
@@ -65,7 +64,7 @@ trait EsRecover { this:GameContainerClientImpl =>
 
   def removePreEventHistory(frame:Long, tankId:Int, serialNum:Byte):Unit = {
     actionEventHistoryMap.get(frame).foreach{ actions =>
-      actionEventHistoryMap.put(frame,actions.filterNot(t => t.tankId == tankId && t.serialNum == serialNum))
+      actionEventHistoryMap.put(frame,actions.filterNot(t => t.breakId == tankId && t.serialNum == serialNum))
     }
   }
 

@@ -3,7 +3,6 @@ package com.neo.sk.breaker.front.pages
 import com.neo.sk.breaker.front.common.{Page, PageSwitcher}
 import mhtml.{Cancelable, Rx, Var, mount}
 import org.scalajs.dom
-import com.neo.sk.breaker.front.model.ReplayInfo
 import scala.xml.Elem
 
 /**
@@ -26,18 +25,18 @@ object MainPage extends PageSwitcher {
 
   private val currentPage: Rx[Elem] = currentPageHash.map {
     case Nil => LoginPage.render
+    case "play" :: Nil => {
+      println("play")
+      new PlayPage(LoginPage.playerInfo).render
+    }
     case _ => <div>Error Page</div>
-  }
-
-  def gotoPage(i: String) = {
-    dom.document.location.hash = "" + i
   }
 
 
   def show(): Cancelable = {
     switchPageByHash()
     val page =
-      <div>
+      <div style="width:100%;height:100%;">
         {currentPage}
       </div>
     mount(dom.document.body, page)

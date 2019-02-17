@@ -4,12 +4,13 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.typed.ActorRef
 import com.neo.sk.breaker.core.{RoomActor, UserActor}
-import com.neo.sk.breaker.shared.`object`.{BreakState, Brick, PropBox}
+import com.neo.sk.breaker.protocol.ActorProtocol
+import com.neo.sk.breaker.shared.`object`._
 import com.neo.sk.breaker.shared.game.GameContainer
 import com.neo.sk.breaker.shared.game.config.{BreakGameConfig, BreakGameConfigImpl}
 import com.neo.sk.breaker.shared.model.{Constants, Point}
 import com.neo.sk.breaker.shared.protocol.BreakerEvent
-import com.neo.sk.breaker.shared.protocol.BreakerEvent.UserLeftRoom
+import com.neo.sk.breaker.shared.protocol.BreakerEvent.{UserJoinRoom, UserLeftRoom}
 import org.slf4j.Logger
 
 import scala.util.Random
@@ -72,7 +73,7 @@ case class GameContainerServerImpl(
   private def initObstacle(pList:mutable.HashSet[Point]) = {
     (1 to config.propNum).foreach { _ =>
       val list=pList.toList
-      val position=list(random(list.size))
+      val position=list(random.nextInt(list.size))
       val obstacle = generateAirDrop(position)
       pList.remove(position)
       val event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
@@ -104,6 +105,24 @@ case class GameContainerServerImpl(
     justJoinUser = (playerId, name, breakId,userActor, frontActor) :: justJoinUser
   }
 
+  def receiveUserAction(preExecuteUserAction: BreakerEvent.UserActionEvent): Unit = {
+    //    println(s"receive user action preExecuteUserAction frame=${preExecuteUserAction.frame}----system fram=${systemFrame}")
+    val f = math.max(preExecuteUserAction.frame, systemFrame)
+    if (preExecuteUserAction.frame != f) {
+      log.debug(s"preExecuteUserAction frame=${preExecuteUserAction.frame}, systemFrame=${systemFrame}")
+    }
+    /**
+      * gameAction,userAction
+      * 新增按键操作，补充血量，
+      **/
+    val action = preExecuteUserAction match {
+      case a: BreakerEvent.UserMouseClick => a.copy(frame = f)
+    }
+
+    addUserAction(action)
+    dispatch(action)
+  }
+
   private def genABreaker(playerId:String,breakId:Int,nickName:String,up:Boolean)={
     val position=if(up){
       Point(boundary.x.toInt/2,0)
@@ -122,7 +141,15 @@ case class GameContainerServerImpl(
       user=justJoinUser.reverse.head
       genABreaker(user._1,user._3,user._2,false)
     }
-    justJoinUser=Nil
+    handleUserJoinRoomEventNow()
+    breakMap.foreach{b=>
+      justJoinUser.find(_._1==b._2.playerId) match {
+        case Some(value)=>
+          value._4 ! ActorProtocol.JoinRoomSuccess(b._2,config.asInstanceOf[BreakGameConfigImpl],roomActorRef)
+        case None=>
+          log.error("user join error")
+      }
+    }
   }
 
   def leftGame(playerId: String, name: String, breakId: Int) = {
@@ -135,6 +162,21 @@ case class GameContainerServerImpl(
   override protected def handleUserLeftRoom(e: UserLeftRoom): Unit = {
     super.handleUserLeftRoom(e)
     roomActorRef ! RoomActor.GameStopRoom
+  }
+
+  override def tankExecuteLaunchBulletAction(breaker: Breaker): Unit = {
+    def transformGenerateBulletEvent(ballState: BallState, s:Boolean=true) = {
+      val event = BreakerEvent.GenerateBall(systemFrame, ballState, s)
+      dispatch(event)
+      addGameEvent(event)
+    }
+    breaker.launchBullet() match {
+      case Some((bulletDirection, position, damage)) =>
+        val momentum = config.ballSpeed.rotate(bulletDirection) * config.frameDuration / 1000
+        val ballState = BallState(ballIdGenerator.getAndIncrement(), breaker.breakId, position, damage.toByte, momentum)
+        transformGenerateBulletEvent(ballState)
+      case None => debug(s"breakerId=${breaker.breakId} has no bullet now")
+    }
   }
 
   override protected def clearEventWhenUpdate(): Unit = {

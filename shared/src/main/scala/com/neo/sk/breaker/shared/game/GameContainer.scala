@@ -70,7 +70,7 @@ trait GameContainer {
     l foreach handleUserJoinRoomEvent
   }
 
-  //服务器和客户端执行的逻辑不一致
+  //fixme 前后端不同的执行
   protected def handleUserJoinRoomEventNow() = {
     gameEventMap.get(systemFrame).foreach{ events =>
       handleUserJoinRoomEvent(events.filter(_.isInstanceOf[UserJoinRoom]).map(_.asInstanceOf[UserJoinRoom]).reverse)
@@ -124,6 +124,39 @@ trait GameContainer {
     }
   }
 
+  /**
+    * 服务器和客户端执行的逻辑不一致
+    * 服务器需要进行子弹容量计算，子弹生成事件，
+    * 客户端只需要进行子弹容量计算
+    * */
+  protected def tankExecuteLaunchBulletAction(breaker:Breaker) : Unit
+
+  protected final def handleUserActionEvent(actions:List[UserActionEvent]) = {
+    /**
+      * 用户行为事件
+      * */
+    actions.sortBy(t => (t.breakId,t.serialNum)).foreach{ action =>
+      breakMap.get(action.breakId) match {
+        case Some(breaker) =>
+          action match {
+            case a:UserMouseMove =>
+              breaker.setTankGunDirection(a.d)
+            case a:UserMouseClick =>
+              //remind 调整鼠标方向
+              breaker.setTankGunDirection(a.d)
+              tankExecuteLaunchBulletAction(breaker)
+          }
+        case None => info(s"breakerId=${action.breakId} action=${action} is no valid,because the breaker is not exist")
+      }
+    }
+  }
+
+  final protected def handleUserActionEventNow() = {
+    actionEventMap.get(systemFrame).foreach{ actionEvents =>
+      handleUserActionEvent(actionEvents.reverse)
+    }
+  }
+
   //小球攻击到障碍物的回调函数，游戏后端需要重写,生成伤害事件
   protected def attackObstacleCallBack(ball: Ball)(o:Obstacle):Unit = {
     val event = BreakerEvent.ObstacleAttacked(o.oId,ball.bId,ball.damage,systemFrame)
@@ -145,15 +178,70 @@ trait GameContainer {
     }
   }
 
+  protected def handleObstacleAttacked(e:ObstacleAttacked) :Unit = {
+   obstacleMap.get(e.obstacleId).foreach{ obstacle =>
+      if(obstacle.isLived()){
+        obstacle.attackDamage(e.damage)
+      }
+    }
+  }
+
+  protected final def handleObstacleAttacked(es:List[ObstacleAttacked]) :Unit = {
+    es foreach handleObstacleAttacked
+  }
+
+  final protected def handleObstacleAttackedNow() = {
+    gameEventMap.get(systemFrame).foreach{ events =>
+      handleObstacleAttacked(events.filter(_.isInstanceOf[ObstacleAttacked]).map(_.asInstanceOf[ObstacleAttacked]).reverse)
+    }
+  }
+
+  protected def handleGenerateBall(e:GenerateBall) :Unit = {
+    //客户端和服务端重写
+    val ball = new Ball(config,e.ball)
+    ballMap.put(e.ball.bId,ball)
+    quadTree.insert(ball)
+  }
+
+  protected final def handleGenerateBullet(es:List[GenerateBall]) :Unit = {
+    es foreach handleGenerateBall
+  }
+
+  final protected def handleGenerateBulletNow() = {
+    gameEventMap.get(systemFrame).foreach{ events =>
+      handleGenerateBullet(events.filter(_.isInstanceOf[GenerateBall]).map(_.asInstanceOf[GenerateBall]).reverse)
+    }
+  }
+
   def update():Unit = {
     handleUserLeftRoomNow()
+    ballMove()
 
+    handleUserActionEventNow()
+    handleObstacleAttackedNow()
+
+    handleObstacleRemoveNow()
+    handleGenerateObstacleNow()
+
+    handleGenerateBulletNow()
+    quadTree.refresh(quadTree)
+
+    clearEventWhenUpdate()
   }
 
   protected def clearEventWhenUpdate():Unit
 
   def getGameContainerAllState():GameContainerAllState = {
     GameContainerAllState(
+      systemFrame,
+      breakMap.values.map(_.getBreakState()).toList,
+      ballMap.values.map(_.getBulletState()).toList,
+      obstacleMap.values.map(_.getObstacleState()).toList
+    )
+  }
+
+  def getGameContainerState():GameContainerState = {
+    GameContainerState(
       systemFrame
     )
   }

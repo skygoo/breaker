@@ -10,7 +10,7 @@ import akka.stream.scaladsl.Flow
 import com.neo.sk.breaker.common.{AppSettings, Constants}
 import com.neo.sk.breaker.core.RoomManager.Command
 import com.neo.sk.breaker.core.game.GameContainerServerImpl
-import com.neo.sk.breaker.protocol.ActorProtocol.JoinRoom
+import com.neo.sk.breaker.protocol.ActorProtocol.{JoinRoom, LeftRoom}
 import com.neo.sk.breaker.shared.model.Constants.GameState
 import com.neo.sk.breaker.shared.protocol
 import com.neo.sk.breaker.shared.protocol.BreakerEvent
@@ -28,6 +28,9 @@ import org.seekloud.byteobject.MiddleBufferInJvm
   * Time at 下午6:26
   */
 object RoomActor {
+  import scala.language.implicitConversions
+  import org.seekloud.byteobject.ByteObject._
+
   private val log = LoggerFactory.getLogger(this.getClass)
 
   private final val InitTime = Some(5.minutes)
@@ -43,6 +46,8 @@ object RoomActor {
   case object GameLoop extends Command
 
   case object GameStopRoom extends Command
+
+  case class WebSocketMsg(req: BreakerEvent.UserActionEvent) extends Command with RoomManager.Command
 
   final case class SwitchBehavior(
                                    name: String,
@@ -64,7 +69,7 @@ object RoomActor {
   }
 
   def create(roomId: Long): Behavior[Command] = {
-    log.debug(s"Room Actor-${roomId} start...")
+    log.debug(s"RoomActor-${roomId} start...")
     Behaviors.setup[Command] {
       ctx =>
         Behaviors.withTimers[Command] {
@@ -96,13 +101,24 @@ object RoomActor {
           if(subscribersMap.size>1){
             log.info(s"room-$roomId start....")
             gameContainer.startGame
+            //remind 同步全量数据
+            dispatch(subscribersMap)(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()))
+//            subscribersMap.values.foreach(_._1 ! UserActor.DispatchMsg(BreakerEvent.Wrap(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())))
             timer.startPeriodicTimer(GameLoopKey, GameLoop, gameContainer.config.frameDuration.millis)
           }
           idle(roomId, subscribersMap, gameContainer)
 
         case GameLoop =>
-
+          gameContainer.update()
           Behaviors.same
+
+        case WebSocketMsg(req) =>
+          gameContainer.receiveUserAction(req)
+          Behaviors.same
+
+        case msg:LeftRoom=>
+          log.debug(s"roomActor left room:${msg.userInfo.playerId}")
+          Behaviors.stopped
 
         case _ =>
           log.warn(s"${ctx.self.path} recv a unknow msg=${msg}")
@@ -111,10 +127,8 @@ object RoomActor {
     }
   }
 
-  import scala.language.implicitConversions
-  import org.seekloud.byteobject.ByteObject._
-
   def dispatch(subscribers: mutable.HashMap[String, (ActorRef[UserActor.Command],ActorRef[BreakerEvent.WsMsgSource])])(msg: BreakerEvent.WsMsgServer)(implicit sendBuffer: MiddleBufferInJvm) = {
-    subscribers.values.foreach(_._2 ! protocol.BreakerEvent.Wrap(msg.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result()))
+//    subscribers.values.foreach(_._2 ! BreakerEvent.Wrap(msg.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result()))
+    subscribers.values.foreach(_._1 ! UserActor.DispatchMsg(BreakerEvent.Wrap(msg.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())))
   }
 }

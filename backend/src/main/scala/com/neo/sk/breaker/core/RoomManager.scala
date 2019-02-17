@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
-import com.neo.sk.breaker.protocol.ActorProtocol.{JoinRoom, JoinRoomFail}
+import com.neo.sk.breaker.protocol.ActorProtocol.{JoinRoom, JoinRoomFail,LeftRoom}
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
@@ -39,7 +39,7 @@ object RoomManager {
   }
 
   def idle(roomIdGenerator: AtomicLong,
-           roomInUse: mutable.HashMap[Long, List[(String, String)]]) // roomId => List[userId, nickName]
+           roomInUse: mutable.HashMap[Long, List[(String, String)]]) // roomId => List[playerId, nickName]
           (implicit stashBuffer: StashBuffer[Command], timer: TimerScheduler[Command]) = {
     Behaviors.receive[Command] { (ctx, msg) =>
       msg match {
@@ -56,6 +56,21 @@ object RoomManager {
           }
           log.debug(s"now roomInUse:$roomInUse")
           Behaviors.same
+
+        case msg:LeftRoom=>
+          roomInUse.find(_._2.exists(_._1 == msg.userInfo.playerId)) match{
+            case Some(t) =>
+              roomInUse.remove(t._1)
+              getRoomActor(ctx,t._1) ! LeftRoom(msg.userInfo)
+              log.debug(s"玩家：${msg.userInfo.playerId}--${msg.userInfo.nickName}")
+            case None => log.debug(s"该玩家不在任何房间")
+          }
+          Behaviors.same
+
+        case unKnowMsg =>
+          stashBuffer.stash(unKnowMsg)
+          log.warn(s"got unknown msg: $unKnowMsg")
+          Behavior.same
       }
     }
   }

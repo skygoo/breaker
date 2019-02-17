@@ -20,43 +20,43 @@ case class BreakGameConfigServerImpl(config: Config){
   import Helpers.Requiring
   import Helpers.ConfigOps
 
-  private[this] val gridBoundaryWidth = config.getInt("tankGame.gridBoundary.width")
+  private[this] val gridBoundaryWidth = config.getInt("breakerGame.gridBoundary.width")
     .requiring(_ > 100,"minimum supported grid boundary width is 100")
-  private[this] val gridBoundaryHeight = config.getInt("tankGame.gridBoundary.height")
+  private[this] val gridBoundaryHeight = config.getInt("breakerGame.gridBoundary.height")
     .requiring(_ > 50,"minimum supported grid boundary height is 50")
   private[this] val gridBoundary = GridBoundary(gridBoundaryWidth,gridBoundaryHeight)
 
-  private[this] val gameFameDuration = config.getLong("tankGame.frameDuration")
+  private[this] val gameFameDuration = config.getLong("breakerGame.frameDuration")
     .requiring(t => t >= 1l,"minimum game frame duration is 1 ms")
 
-  private[this] val ballRadius = config.getDoubleList("tankGame.ball.ballRadius")
+  private[this] val ballRadius = config.getDoubleList("breakerGame.ball.ballRadius")
     .requiring(_.size() >= 3,"ball radius size has 3 type").asScala.toList.map(_.toFloat)
-  private[this] val ballDamage = config.getIntList("tankGame.ball.ballDamage")
+  private[this] val ballDamage = config.getIntList("breakerGame.ball.ballDamage")
     .requiring(_.size() >= 3,"ball damage size has 3 type").asScala.toList.map(_.toInt)
-  private[this] val maxFly = config.getInt("tankGame.ball.maxFlyFrame").toByte
-    .requiring(_ > 0,"minimum ball max fly frame is 1")
-  private[this] val ballSpeedData = config.getInt("tankGame.ball.ballSpeed")
+  private[this] val maxFly = config.getInt("breakerGame.ball.maxFly").toByte
+    .requiring(_ > 0,"minimum ball max fly is 1")
+  private[this] val ballSpeedData = config.getInt("breakerGame.ball.ballSpeed")
     .requiring(_ > 0,"minimum ball speed is 1")
   private val ballParameters = BallParameters(ballRadius.zip(ballDamage),maxFly,ballSpeedData)
 
-  private[this] val obstacleWidthData = config.getDouble("tankGame.obstacle.width")
+  private[this] val obstacleWidthData = config.getDouble("breakerGame.obstacle.width")
     .requiring(_ > 0,"minimum supported obstacle width is 1").toFloat
-  private[this] val collisionWOffset = config.getDouble("tankGame.obstacle.collisionWidthOffset")
+  private[this] val collisionWOffset = config.getDouble("breakerGame.obstacle.collisionWidthOffset")
     .requiring(_ > 0,"minimum supported obstacle width is 1").toFloat
 
 
-  private[this] val airDropBloodData = config.getInt("tankGame.obstacle.airDrop.blood").toByte
+  private[this] val propBloodData = config.getInt("breakerGame.obstacle.airDrop.blood").toByte
     .requiring(_ > 0,"minimum supported air drop blood is 1")
-  private[this] val airDropNumData = config.getInt("tankGame.obstacle.airDrop.num")
+  private[this] val propNumData = config.getInt("breakerGame.obstacle.airDrop.num")
     .requiring(_ >= 0,"minimum supported air drop num is 0")
 
-  private[this] val brickBloodData = config.getInt("tankGame.obstacle.brick.blood").toByte
+  private[this] val brickBloodData = config.getInt("breakerGame.obstacle.brick.blood").toByte
     .requiring(_ > 0,"minimum supported brick blood is 1")
-  private[this] val brickNumData = config.getInt("tankGame.obstacle.brick.num")
+  private[this] val brickNumData = config.getInt("breakerGame.obstacle.brick.num")
     .requiring(_ >= 0,"minimum supported brick num is 0")
 
   private val obstacleParameters = ObstacleParameters(obstacleWidthData,collisionWOffset,
-    propParameters = PropParameters(airDropBloodData,airDropNumData),
+    propParameters = PropParameters(propBloodData,propNumData),
     brickParameters = BrickParameters(brickBloodData,brickNumData)
   )
 
