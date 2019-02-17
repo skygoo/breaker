@@ -22,8 +22,7 @@ object Constants {
 
 
 
-  val breakerGameUserIdPrefix = "breaker_guest_"
-
-
+  val BreakerSignUserIdPrefix = "sign_"
+  val BreakerGameUserIdPrefix = "guest_"
 
 }

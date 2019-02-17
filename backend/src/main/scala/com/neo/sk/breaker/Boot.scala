@@ -46,10 +46,9 @@ object Boot extends HttpService {
   val log: LoggingAdapter = Logging(system, getClass)
 
 
-//  val roomActor:ActorRef[RoomActor.Command] = system.spawn(RoomActor.create(),"roomActor")
-//  val roomManager:ActorRef[RoomManager.Command] = system.spawn(RoomManager.create(),"roomManager")
-//
-//  val userManager:ActorRef[UserManager.Command] = system.spawn(UserManager.create(),"userManager")
+  val roomManager:ActorRef[RoomManager.Command] = system.spawn(RoomManager.create(),"roomManager")
+
+  val userManager:ActorRef[UserManager.Command] = system.spawn(UserManager.create(),"userManager")
 
 
   def main(args: Array[String]) {

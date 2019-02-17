@@ -2,8 +2,7 @@ package com.neo.sk.breaker.common
 
 import java.util.concurrent.TimeUnit
 
-//import com.neo.sk.breaker.core.game.breakerGameConfigServerImpl
-//import com.neo.sk.breaker.shared.config.breakerGameConfig
+import com.neo.sk.breaker.core.game.BreakGameConfigServerImpl
 import com.neo.sk.utils.SessionSupport.SessionConfig
 import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.LoggerFactory
@@ -33,12 +32,11 @@ object AppSettings {
 
   val log = LoggerFactory.getLogger(this.getClass)
   val config = ConfigFactory.parseResources("product.conf").withFallback(ConfigFactory.load())
-//  val breakerGameConfig:Bre = breakerGameConfigServerImpl(ConfigFactory.parseResources("breakerGame.conf"))
+  val breakerGameConfig = BreakGameConfigServerImpl(ConfigFactory.parseResources("breakerGame.conf")).gameConfig
 
 
 
   val appConfig = config.getConfig("app")
-//  val dependence = config.getConfig("dependence")
 
   val personLimit = appConfig.getInt("breakerGameRoomManager.personLimit")
   val supportLiveLimit = appConfig.getBoolean("breakerGameRoomManager.supportLiveLimit")
@@ -48,21 +46,8 @@ object AppSettings {
   val nameList = appConfig.getStringList("botManager.nameList")
   val needSpecialName = appConfig.getBoolean("botManager.needSpecialName")
 
-  //  val wxConfig = appConfig.getConfig("wx.config")
-  //  val mpAppId = wxConfig.getString("mpAppId")
-  //  val componentAppId = wxConfig.getString("componentAppid")
-  //  val clientAppId = wxConfig.getString("clientAppId")
-
-
-  //  val appIdConfig=appConfig.getConfig("appId.config")
-
   val httpInterface = appConfig.getString("http.interface")
   val httpPort = appConfig.getInt("http.port")
-
-//  val serverProtocol = appConfig.getString("server.protocol")
-//  val serverHost = appConfig.getString("server.host")
-//  val rootPath = appConfig.getString("server.rootPath")
-//  val baseUrl = serverProtocol + "://" + serverHost
 
 
   val authCheck = appConfig.getBoolean("authCheck")

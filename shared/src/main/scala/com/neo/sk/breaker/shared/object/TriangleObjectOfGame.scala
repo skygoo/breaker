@@ -9,34 +9,7 @@ import com.neo.sk.breaker.shared.model.Point
   * Time at 下午9:47
   * 三角形
   */
-trait TriangleObjectOfGame extends ObjectOfGame{
-  protected val width : Float
-  protected val height : Float
-  protected val collisionOffset: Float //？
-
-  final def getWidth = width
-  final def getHeight = height
-
-  private[this] def collisionWidth = width - collisionOffset
-  private[this] def collisionHeight = height - collisionOffset
-
-
-
-  /**
-    * 获取当前元素的包围盒
-    * @return  rectangle
-    */
-  override def getObjectRect(): model.Rectangle = {
-    model.Rectangle(position - model.Point(width / 2, height / 2),position + model.Point(width / 2, height / 2))
-  }
-
-  /**
-    * 获取当前元素的外形
-    * @return  shape
-    */
-  override def getObjectShape(): model.Shape = {
-    getObjectRect()
-  }
+trait TriangleObjectOfGame extends RectangleObjectOfGame{
 
   /**
     * 判断元素是否和其他元素有碰撞

@@ -1,7 +1,7 @@
 package com.neo.sk.breaker.front.components
 
 import com.neo.sk.breaker.front.common.Component
-import com.neo.sk.breaker.front.model.PlayerInfo
+import com.neo.sk.breaker.shared.protocol.UserProtocol.UserInfo
 import com.neo.sk.breaker.shared.model.Constants.GameState
 import mhtml.Var
 import org.scalajs.dom
@@ -13,17 +13,14 @@ import com.neo.sk.breaker.front.utils.Shortcut
 /**
   * Created by hongruying on 2018/7/9
   */
-class StartGameModal(gameState:Var[Int],startGame:(String,Option[Long]) => Unit, playerInfoOpt:Option[PlayerInfo]) extends Component{
+class StartGameModal(gameState:Var[Int],startGame:(String,Option[Long]) => Unit, playerInfoOpt:Option[UserInfo]) extends Component{
 
 
   private val inputDisabled:Var[Boolean] = Var(playerInfoOpt.isDefined)
-  private val inputValue:Var[String] = Var(playerInfoOpt.map(_.userName).getOrElse(""))
+  private val inputValue:Var[String] = Var(playerInfoOpt.getOrElse(""))
 //  private val input4RoomIdValue:Var[Option[Long]] = Var(playerInfoOpt.map(_.roomIdOpt).get)
   private var inputName = ""
 
-
-
-//  private var lives:Int = 3 // 默认第一次进入，生命值3
   private val title = gameState.map{
     case GameState.firstCome => "欢迎来到坦克大战io，请输入用户名进行游戏体验"
     case GameState.stop => "重新开始"
@@ -40,12 +37,6 @@ class StartGameModal(gameState:Var[Int],startGame:(String,Option[Long]) => Unit,
     case GameState.firstCome => "display:block;"
     case _ => "display:none;"
   }
-//
-//  private val combatGainsStyle = gameState.map{
-//    case GameState.stop => "display:block"
-//    case _ => "display:none"
-//  }
-
 
   private val watchButtonDivStyle = inputDisabled.map{
     case true => "display:none;"

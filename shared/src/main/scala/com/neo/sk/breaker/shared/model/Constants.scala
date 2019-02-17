@@ -39,24 +39,16 @@ object Constants {
     val width = 1
   }
 
-  object TankStar{
-    val maxNum = 16
-    val height = 2
-    val width = 2
-    val interval = 2
+  object PropType{
+    val typeSize=2
+    val addBallProp:Byte=0
+    val decBallProp:Byte=1
   }
 
   object ObstacleType{
     val airDropBox:Byte = 1
     val brick:Byte = 2
-    val steel:Byte = 3
-    val river:Byte = 4
-  }
-
-
-  object PropGenerateType{
-    val tank:Byte = 0
-    val airDrop:Byte = 1
+    val wall:Byte = 3
   }
 
   object GameAnimation{
