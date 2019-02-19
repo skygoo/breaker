@@ -17,6 +17,8 @@ case class ObstacleState(oId:Int,t:Byte,pt:Option[Byte],b:Option[Int],p:Point)
   * 控制移动阻碍（墙，队友）*/
 trait ObstacleBreak
 
+trait ObstacleBall
+
 trait Obstacle extends RectangleObjectOfGame{
 
   val oId:Int

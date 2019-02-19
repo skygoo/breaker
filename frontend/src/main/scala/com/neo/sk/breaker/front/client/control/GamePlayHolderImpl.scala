@@ -85,7 +85,7 @@ class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extend
           val theta = if(up) point.getTheta(Point(canvasBoundary.*(canvasUnit).x/2,canvasBoundary.*(canvasUnit).y-breakPosition.y* canvasUnit)).toFloat else point.getTheta(Point(canvasBoundary.*(canvasUnit).x/2,breakPosition.y*canvasUnit)).toFloat
           val preExecuteAction = BreakerEvent.UC(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta, getActionSerialNum)
           gameContainerOpt.get.preExecuteUserEvent(preExecuteAction)
-          sendMsg2Server(if(up) preExecuteAction.copy(d = -theta) else preExecuteAction) //发送鼠标位置
+          sendMsg2Server(if(up) preExecuteAction.copy(d = Point(canvasBoundary.*(canvasUnit).x/2,canvasBoundary.*(canvasUnit).y-breakPosition.y* canvasUnit).getTheta(point).toFloat) else preExecuteAction) //发送鼠标位置
           e.preventDefault()
         }
         //        audioForBullet.play()

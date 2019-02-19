@@ -14,7 +14,7 @@ case class Wall (
              config:BreakGameConfig,
              override val oId: Int,
              override protected var position: Point,
-           ) extends Obstacle with ObstacleBreak {
+           ) extends Obstacle with ObstacleBreak with ObstacleBall {
 
   def this(config: BreakGameConfig,obstacleState: ObstacleState){
     this(config,obstacleState.oId,obstacleState.p)

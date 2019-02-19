@@ -49,7 +49,7 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
       val startAngle = 0
       val lengthAngle = 360
       ctx.arc(centerX.toFloat, centerY.toFloat, radius, startAngle.toFloat, lengthAngle.toFloat)
-      val tankColor = if(myBreakId==breaker.breakId) BreakColor.blue else BreakColor.red
+      val tankColor = if(breaker.up) BreakColor.blue else BreakColor.red
       ctx.setFill(tankColor)
       ctx.fill()
       ctx.stroke()

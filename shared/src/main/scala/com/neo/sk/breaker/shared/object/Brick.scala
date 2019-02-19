@@ -13,7 +13,7 @@ case class Brick(
                   override val oId: Int,
                   override protected var position: Point,
                   protected var curBlood :Int //物体血量
-                ) extends Obstacle {
+                ) extends Obstacle with ObstacleBall {
 
   def this(config: BreakGameConfig,obstacleState: ObstacleState){
     this(config,obstacleState.oId,obstacleState.p,obstacleState.b.getOrElse(config.brickMaxBlood))

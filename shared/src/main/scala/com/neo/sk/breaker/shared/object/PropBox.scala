@@ -14,7 +14,7 @@ case class PropBox(
                        override protected var position: Point,
                        protected var curBlood :Int, //物体血量
                        propType:Byte
-                     ) extends Obstacle{
+                     ) extends Obstacle with ObstacleBall {
 
   def this(config: BreakGameConfig,obstacleState: ObstacleState){
     this(config,obstacleState.oId,obstacleState.p,obstacleState.b.getOrElse(config.propMaxBlood),obstacleState.pt.getOrElse(0))

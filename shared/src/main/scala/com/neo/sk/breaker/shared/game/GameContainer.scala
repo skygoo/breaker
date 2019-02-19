@@ -174,8 +174,7 @@ trait GameContainer {
       val objects = quadTree.retrieveFilter(ball)
       objects.filter(t => t.isInstanceOf[Obstacle]).map(_.asInstanceOf[Obstacle])
         .foreach(t => ball.checkAttackObject(t,attackObstacleCallBack(ball)))
-      ball.move(boundary,removeBall)
-
+      ball.move(boundary,quadTree,removeBall)
     }
   }
 
