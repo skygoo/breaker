@@ -24,6 +24,7 @@ case class GameContainerClientImpl(
                                     myName: String,
                                     var canvasSize: Point,
                                     var canvasUnit: Float,
+                                    gameOverCallback: () => Unit
                                   ) extends GameContainer with EsRecover
   with BackDrawUtil
   with InfoDrawUtil
@@ -48,6 +49,10 @@ case class GameContainerClientImpl(
   def updateClientSize(canvasS: Point, cUnit: Float) = {
     canvasUnit = cUnit
     canvasSize = canvasS
+    updateBackSize()
+    updateBallSize()
+    updateObstacleSize()
+    updateBreakSize()
   }
 
   protected def handleGameContainerAllState(gameContainerAllState: GameContainerAllState) = {
@@ -156,8 +161,17 @@ case class GameContainerClientImpl(
     }
   }
 
+  override protected def handleGameOver(e: GameOver): Unit = {
+    super.handleGameOver(e)
+    gameOverCallback()
+  }
+
   override protected def handleObstacleAttacked(e: ObstacleAttacked): Unit = {
-    super.handleObstacleAttacked(e)
+    obstacleMap.get(e.obstacleId).foreach{ obstacle =>
+      if(obstacle.isLived()){
+        obstacle.attackDamage(e.damage)
+      }
+    }
     if (obstacleMap.get(e.obstacleId).nonEmpty || environmentMap.get(e.obstacleId).nonEmpty) {
       obstacleAttackedAnimationMap.put(e.obstacleId, GameAnimation.bulletHitAnimationFrame)
     }

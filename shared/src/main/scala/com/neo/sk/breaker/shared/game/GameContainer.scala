@@ -2,7 +2,7 @@ package com.neo.sk.breaker.shared.game
 
 import com.neo.sk.breaker.shared.`object`._
 import com.neo.sk.breaker.shared.game.config.BreakGameConfig
-import com.neo.sk.breaker.shared.model.Constants.ObstacleType
+import com.neo.sk.breaker.shared.model.Constants.{ObstacleType, PropType}
 import com.neo.sk.breaker.shared.model.{Point, Rectangle}
 import com.neo.sk.breaker.shared.protocol.BreakerEvent
 import com.neo.sk.breaker.shared.protocol.BreakerEvent._
@@ -31,8 +31,6 @@ trait GameContainer {
   val boundary : Point = config.boundary
 
   var systemFrame:Long = 0L //系统帧数
-  protected var upLine=(config.totalWallRow-config.brickRow)/2
-  protected var downLine=(config.totalWallRow+config.brickRow)/2
 
   val breakMap = mutable.HashMap[Int,Breaker]()
   val ballMap = mutable.HashMap[Int,Ball]() //bulletId -> Bullet
@@ -42,6 +40,8 @@ trait GameContainer {
 
   protected val gameEventMap = mutable.HashMap[Long,List[GameEvent]]() //frame -> List[GameEvent] 待处理的事件 frame >= curFrame
   protected val actionEventMap = mutable.HashMap[Long,List[UserActionEvent]]() //frame -> List[UserActionEvent]
+
+  var winner:(String,String,Int)=("","",0)
 
   protected final def addUserAction(action:UserActionEvent):Unit = {
     actionEventMap.get(action.frame) match {
@@ -80,6 +80,10 @@ trait GameContainer {
 
   protected def handleUserLeftRoom(e:UserLeftRoom) :Unit = {
     info("game stop 4 userLeft")
+    breakMap.find(_._1 != e.breakId).foreach{ b=>
+      val event=BreakerEvent.GameOver(b._2.breakId,systemFrame)
+      addGameEvent(event)
+    }
   }
 
   final protected def handleUserLeftRoom(l:List[UserLeftRoom]) :Unit = {
@@ -89,6 +93,20 @@ trait GameContainer {
   final protected def handleUserLeftRoomNow() = {
     gameEventMap.get(systemFrame).foreach{ events =>
       handleUserLeftRoom(events.filter(_.isInstanceOf[UserLeftRoom]).map(_.asInstanceOf[UserLeftRoom]).reverse)
+    }
+  }
+
+  protected def handleGameOver(e:GameOver) :Unit={
+    breakMap.find(_._1==e.breakId).foreach(r=>winner=(r._2.playerId,r._2.name,r._2.breakId))
+  }
+
+  final protected def handleGameOver(l:List[GameOver]) :Unit = {
+    l foreach handleGameOver
+  }
+
+  final protected def handleGameOverNow()={
+    gameEventMap.get(systemFrame).foreach{ events =>
+      handleGameOver(events.filter(_.isInstanceOf[GameOver]).map(_.asInstanceOf[GameOver]).reverse)
     }
   }
 
@@ -110,6 +128,23 @@ trait GameContainer {
 
   protected def handleObstacleRemove(e:ObstacleRemove) :Unit = {
     obstacleMap.get(e.obstacleId).foreach { obstacle =>
+      info(s"remove Obstacle ---$e")
+      if(obstacle.obstacleType==ObstacleType.airDropBox){
+        obstacle.propType.foreach {
+          case PropType.addBallProp =>
+            breakMap.get(e.breakId) match {
+              case Some(value)=>
+                value.fillBullet()
+              case None=>
+            }
+          case PropType.decBallProp =>
+            ballMap.get(e.ballId) match {
+              case Some(value)=>
+                removeBall(value)
+              case None=>
+            }
+        }
+      }
       quadTree.remove(obstacle)
       obstacleMap.remove(e.obstacleId)
     }
@@ -160,7 +195,7 @@ trait GameContainer {
 
   //小球攻击到障碍物的回调函数，游戏后端需要重写,生成伤害事件
   protected def attackObstacleCallBack(ball: Ball)(o:Obstacle):Unit = {
-    val event = BreakerEvent.ObstacleAttacked(o.oId,ball.bId,ball.damage,systemFrame)
+    val event = BreakerEvent.ObstacleAttacked(o.oId,ball.breakId,ball.bId,ball.damage,systemFrame)
     addGameEvent(event)
   }
 
@@ -171,20 +206,11 @@ trait GameContainer {
 
   protected def ballMove():Unit = {
     ballMap.toList.sortBy(_._1).map(_._2).foreach{ ball =>
-      val objects = quadTree.retrieveFilter(ball)
-      objects.filter(t => t.isInstanceOf[Obstacle]).map(_.asInstanceOf[Obstacle])
-        .foreach(t => ball.checkAttackObject(t,attackObstacleCallBack(ball)))
-      ball.move(boundary,quadTree,removeBall)
+      ball.move(boundary,quadTree,removeBall,attackObstacleCallBack(ball))
     }
   }
 
-  protected def handleObstacleAttacked(e:ObstacleAttacked) :Unit = {
-   obstacleMap.get(e.obstacleId).foreach{ obstacle =>
-      if(obstacle.isLived()){
-        obstacle.attackDamage(e.damage)
-      }
-    }
-  }
+  protected def handleObstacleAttacked(e:ObstacleAttacked) :Unit
 
   protected final def handleObstacleAttacked(es:List[ObstacleAttacked]) :Unit = {
     es foreach handleObstacleAttacked
@@ -213,10 +239,16 @@ trait GameContainer {
     }
   }
 
+  final protected def handleFillBulletNow()={
+    if(systemFrame%config.fillBallFrame==0){
+      breakMap.foreach(_._2.fillBullet())
+    }
+  }
+
   def update():Unit = {
     handleUserLeftRoomNow()
+    handleGameOverNow()
     ballMove()
-
     handleUserActionEventNow()
     handleObstacleAttackedNow()
 
@@ -224,8 +256,10 @@ trait GameContainer {
     handleGenerateObstacleNow()
 
     handleGenerateBulletNow()
-    quadTree.refresh(quadTree)
 
+    handleFillBulletNow()
+
+    quadTree.refresh(quadTree)
     clearEventWhenUpdate()
   }
 

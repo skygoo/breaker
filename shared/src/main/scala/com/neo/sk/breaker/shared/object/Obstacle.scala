@@ -25,6 +25,7 @@ trait Obstacle extends RectangleObjectOfGame{
 
   val obstacleType:Byte
 
+  val propType:Option[Byte]=None
 
   def getObstacleState():ObstacleState
 
@@ -36,7 +37,7 @@ trait Obstacle extends RectangleObjectOfGame{
     o.exists(t => t.isIntersects(this))
   }
 
-  def bloodPercent():Float
+  def getCurBlood():Int
 
 }
 

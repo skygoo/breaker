@@ -19,8 +19,6 @@ case class Brick(
     this(config,obstacleState.oId,obstacleState.p,obstacleState.b.getOrElse(config.brickMaxBlood))
   }
 
-
-  val maxBlood:Int = config.brickMaxBlood
   override val obstacleType = ObstacleType.brick
   override protected val height: Float = config.obstacleWidth
   override protected val width: Float = config.obstacleWidth
@@ -37,6 +35,6 @@ case class Brick(
     else false
   }
 
-  override def bloodPercent():Float = curBlood.toFloat / maxBlood
+  override def getCurBlood():Int = curBlood
 
 }

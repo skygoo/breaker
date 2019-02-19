@@ -119,8 +119,13 @@ object RoomActor {
           gameContainer.receiveUserAction(req)
           Behaviors.same
 
+        case GameStopRoom=>
+
+          Behaviors.stopped
+
         case msg:LeftRoom=>
           log.debug(s"roomActor left room:${msg.userInfo.playerId}")
+          gameContainer.leftGame(msg.userInfo.playerId.getOrElse(""))
           Behaviors.stopped
 
         case _ =>

@@ -3,7 +3,7 @@ package com.neo.sk.breaker.shared.game.view
 import com.neo.sk.breaker.shared.`object`.PropBox
 import com.neo.sk.breaker.shared.game.GameContainerClientImpl
 import com.neo.sk.breaker.shared.model.Constants.ObstacleType
-import com.neo.sk.breaker.shared.model.Point
+import com.neo.sk.breaker.shared.model.{Constants, Point}
 
 import scala.collection.mutable
 import com.neo.sk.breaker.shared.util.canvas.MiddleContext
@@ -18,12 +18,15 @@ trait ObstacleDrawUtil{ this:GameContainerClientImpl =>
 
   private val obstacleCanvasCacheMap = mutable.HashMap[(Byte, Boolean), Any]()
 
-  private val steelImg =drawFrame.createImage("/img/钢铁.png")
-  private val airBoxImg =drawFrame.createImage("/img/道具.png")
+  private val steelImg =drawFrame.createImage("/img/wall.png")
+//  private val brickImg =drawFrame.createImage("/img/wall.png")
+  private val addBallImg =drawFrame.createImage("/img/addBall.png")
+  private val delBallImg =drawFrame.createImage("/img/decBall.png")
 
-  protected def obstacleImgComplete: Boolean = steelImg.isComplete
 
-  def updateObstacleSize(canvasSize:Point)={
+  protected def obstacleImgComplete: Boolean = steelImg.isComplete && addBallImg.isComplete && delBallImg.isComplete
+
+  def updateObstacleSize()={
     obstacleCanvasCacheMap.clear()
   }
 
@@ -51,6 +54,13 @@ trait ObstacleDrawUtil{ this:GameContainerClientImpl =>
     context.setLineWidth(1)
   }
 
+  protected def getPropImg(p:Byte)={
+    p match {
+      case Constants.PropType.addBallProp=>addBallImg
+      case Constants.PropType.decBallProp=>delBallImg
+      case _ => delBallImg
+    }
+  }
 
   protected def drawObstacles(up:Boolean,offset:Point) = {
     obstacleMap.values.foreach{ obstacle =>
@@ -60,43 +70,35 @@ trait ObstacleDrawUtil{ this:GameContainerClientImpl =>
       }else{
         obstacle.getPosition + offset - Point(obstacle.getWidth / 2, obstacle.getHeight / 2)
       }
+      val isAttacked =  obstacleAttackedAnimationMap.contains(obstacle.oId)
+      if(isAttacked){
+        if (obstacleAttackedAnimationMap(obstacle.oId) <= 0) obstacleAttackedAnimationMap.remove(obstacle.oId)
+        else obstacleAttackedAnimationMap.put(obstacle.oId, obstacleAttackedAnimationMap(obstacle.oId) - 1)
+        ctx.setGlobalAlpha(0.5)
+      }
       if(obstacle.obstacleType == ObstacleType.airDropBox){
-        ctx.drawImage(airBoxImg, p.x * canvasUnit, p.y * canvasUnit,
-          Some(obstacle.getWidth * canvasUnit, obstacle.getHeight * canvasUnit))
+        obstacle.propType.foreach(o =>ctx.drawImage(getPropImg(o), p.x * canvasUnit, p.y * canvasUnit,
+          Some(obstacle.getWidth * canvasUnit, obstacle.getHeight * canvasUnit)))
       }else{
         val cache = obstacleCanvasCacheMap.getOrElseUpdate((obstacle.obstacleType, false), generateObstacleCacheCanvas(obstacle.getWidth, obstacle.getHeight, color))
         ctx.drawImage(cache, p.x * canvasUnit, p.y * canvasUnit)
+//        ctx.drawImage(wallImg, p.x * canvasUnit, p.y * canvasUnit,
+//          Some(obstacle.getWidth * canvasUnit, obstacle.getHeight * canvasUnit))
       }
+      if(isAttacked){
+        ctx.setGlobalAlpha(1)
+      }
+      ctx.setFont("Helvetica", "normal",2 * canvasUnit)
+      ctx.setFill("rgb(0,0,0)")
+      ctx.setTextAlign("center")
+      ctx.fillText(obstacle.getCurBlood().toString,(p.x+obstacle.getWidth/2) * canvasUnit, (p.y+obstacle.getHeight/2) * canvasUnit)
+      ctx.beginPath()
 //      ctx.setFont("Helvetica", "normal",2 * canvasUnit)
 //      ctx.setFill("rgb(0,0,0)")
 //      ctx.setTextAlign("left")
-//      ctx.fillText(obstacle.oId.toString,p.x * canvasUnit, p.y * canvasUnit)
+//      ctx.fillText(obstacle.oId.toString,(p.x+obstacle.getWidth/2) * canvasUnit, (p.y+obstacle.getHeight/2) * canvasUnit)
+//      ctx.beginPath()
     }
-  }
-
-
-  def drawObstacleBloodSlider(offset:Point) = {
-    obstacleMap.values.filter(_.isInstanceOf[PropBox]).foreach{ obstacle =>
-      if(obstacle.bloodPercent() < 0.99999999){
-        val p = obstacle.getPosition + offset - Point(obstacle.getWidth / 2, obstacle.getHeight / 2)
-        drawLine(p.x * canvasUnit, (p.y - 2) * canvasUnit, 10, obstacle.getWidth * canvasUnit, "#4D4D4D")
-        drawLine(p.x * canvasUnit, (p.y - 2) * canvasUnit, 5, obstacle.getWidth * canvasUnit * obstacle.bloodPercent(), "#98FB98")
-      }
-    }
-  }
-
-  //画血量条
-  private def drawLine(startX: Float, startY: Float, lineWidth:Float, lineLen:Float, color:String) = {
-    ctx.save()
-    ctx.setLineWidth(lineWidth)
-    ctx.setLineCap("round")
-    ctx.setStrokeStyle(color)
-    ctx.beginPath()
-    ctx.moveTo(startX, startY)
-    ctx.lineTo(startX + lineLen, startY)
-    ctx.stroke()
-    ctx.closePath()
-    ctx.restore()
   }
 
 
@@ -136,10 +138,6 @@ trait ObstacleDrawUtil{ this:GameContainerClientImpl =>
         ctx.stroke()
         ctx.closePath()
       }
-//      ctx.setFont("Helvetica", "normal",2 * canvasUnit)
-//      ctx.setFill("rgb(0,0,0)")
-//      ctx.setTextAlign("left")
-//      ctx.fillText(obstacle.oId.toString,p.x * canvasUnit, p.y * canvasUnit)
       if (obstacleAttackedAnimationMap.contains(obstacle.oId)) {
         if (obstacleAttackedAnimationMap(obstacle.oId) <= 0) obstacleAttackedAnimationMap.remove(obstacle.oId)
         else obstacleAttackedAnimationMap.put(obstacle.oId, obstacleAttackedAnimationMap(obstacle.oId) - 1)

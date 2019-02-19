@@ -17,11 +17,6 @@ trait BallDrawUtil { this:GameContainerClientImpl =>
     val ctxCache = canvasCache.getCtx
 
     val color = bullet.getBulletLevel() match {
-//      case 1 => "#CD6600"
-//      case 2 => "#CD5555"
-//      case 4 => "#CD3278"
-//      case 3 => "#FF4500"
-//      case 5 => "#8B2323"
       case 1 => "#CD6600"
       case 2 => "#FF4500"
       case 3 => "#8B2323"
@@ -39,7 +34,7 @@ trait BallDrawUtil { this:GameContainerClientImpl =>
 
   private val canvasCacheMap = mutable.HashMap[Byte,Any]()
 
-  def updateBulletSize(canvasSize:Point)={
+  def updateBallSize()={
     canvasCacheMap.clear()
   }
 

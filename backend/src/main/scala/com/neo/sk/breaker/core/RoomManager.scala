@@ -43,16 +43,16 @@ object RoomManager {
           (implicit stashBuffer: StashBuffer[Command], timer: TimerScheduler[Command]) = {
     Behaviors.receive[Command] { (ctx, msg) =>
       msg match {
-        case JoinRoom(userInfo, userActor,frontActor) =>
+        case msg:JoinRoom =>
           roomInUse.find(p => p._2.length < 2).toList.sortBy(_._1).headOption match {
             case Some(t) =>
-              roomInUse.put(t._1, (userInfo.playerId.getOrElse(""), userInfo.nickName) :: t._2)
-              getRoomActor(ctx, t._1) ! JoinRoom(userInfo, userActor,frontActor)
+              roomInUse.put(t._1, (msg.userInfo.playerId.getOrElse(""), msg.userInfo.nickName) :: t._2)
+              getRoomActor(ctx, t._1) ! msg
             case None =>
               var roomId = roomIdGenerator.getAndIncrement()
               while (roomInUse.exists(_._1 == roomId)) roomId = roomIdGenerator.getAndIncrement()
-              roomInUse.put(roomId, List((userInfo.playerId.getOrElse(""), userInfo.nickName)))
-              getRoomActor(ctx, roomId) ! JoinRoom(userInfo, userActor,frontActor)
+              roomInUse.put(roomId, List((msg.userInfo.playerId.getOrElse(""), msg.userInfo.nickName)))
+              getRoomActor(ctx, roomId) ! msg
           }
           log.debug(s"now roomInUse:$roomInUse")
           Behaviors.same
@@ -61,10 +61,14 @@ object RoomManager {
           roomInUse.find(_._2.exists(_._1 == msg.userInfo.playerId)) match{
             case Some(t) =>
               roomInUse.remove(t._1)
-              getRoomActor(ctx,t._1) ! LeftRoom(msg.userInfo)
+              getRoomActor(ctx,t._1) ! msg
               log.debug(s"玩家：${msg.userInfo.playerId}--${msg.userInfo.nickName}")
             case None => log.debug(s"该玩家不在任何房间")
           }
+          Behaviors.same
+
+        case ChildDead(child,childRef)=>
+          log.info(child + " is stop")
           Behaviors.same
 
         case unKnowMsg =>

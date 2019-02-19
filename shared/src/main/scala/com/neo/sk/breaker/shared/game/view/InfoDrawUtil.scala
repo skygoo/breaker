@@ -11,16 +11,6 @@ import com.neo.sk.breaker.shared.game.GameContainerClientImpl
 trait InfoDrawUtil {this:GameContainerClientImpl =>
 //  private val combatImg = this.drawFrame.createImage("/img/dead.png")
 
-  def drawGameLoading():Unit = {
-    ctx.setFill("rgb(0,0,0)")
-    ctx.fillRec(0, 0, canvasSize.x * canvasUnit, canvasSize.y * canvasUnit)
-    ctx.setFill("rgb(250, 250, 250)")
-    ctx.setTextAlign("left")
-    ctx.setTextBaseline("top")
-    ctx.setFont(s"Helvetica","normal",3.6 * canvasUnit)
-    ctx.fillText("请稍等，正在连接服务器", 150, 180)
-  }
-
   def drawGameStop():Unit = {
     ctx.setFill("rgb(0,0,0)")
     ctx.fillRec(0, 0, canvasSize.x * canvasUnit, canvasSize.y * canvasUnit)
@@ -76,17 +66,10 @@ trait InfoDrawUtil {this:GameContainerClientImpl =>
 
   def drawCombatGains():Unit = {
     ctx.setFont("Arial", "normal", 4 * canvasUnit)
-//    ctx.setFill("rgb(0,0,0)")
-//    ctx.fillRec(0,0,canvasSize.x * canvasUnit,canvasSize.y * canvasUnit)
-//    val combatImg = drawFrame.createImage("/img/dead.png")
-//    ctx.setGlobalAlpha(0.7)
-//    ctx.drawImage(combatImg,0.25 * canvasSize.x * canvasUnit,0.1 * canvasSize.y * canvasUnit,Some(0.5* canvasSize.x * canvasUnit,0.22 * canvasSize.y * canvasUnit))
     ctx.setGlobalAlpha(1)
     ctx.setTextAlign("left")
     ctx.setFill("rgb(0,0,0)")
-    ctx.fillText(s"KillCount：",0.4 * canvasSize.x * canvasUnit, 0.12 * canvasSize.y * canvasUnit)
-    ctx.fillText(s"Damage：", 0.4 * canvasSize.x * canvasUnit, 0.2 * canvasSize.y * canvasUnit)
-    ctx.fillText(s"Killer：",0.4 * canvasSize.x * canvasUnit, 0.26 * canvasSize.y * canvasUnit)
+    ctx.fillText(s"Winner is：${winner._2}",0.4 * canvasSize.x * canvasUnit, 0.12 * canvasSize.y * canvasUnit)
     ctx.fillText(s"Press Space To Comeback!!!",0.4 * canvasSize.x * canvasUnit, 0.32 * canvasSize.y * canvasUnit)
   }
 }

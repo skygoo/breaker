@@ -31,6 +31,6 @@ case class Wall (
 
   override def isLived(): Boolean = true
 
-  override def bloodPercent():Float = 1
+  override def getCurBlood():Int = Int.MaxValue
 
 }

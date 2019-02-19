@@ -58,7 +58,7 @@ case class Breaker(
   }
 
   private def getTankBulletDamage():Int = {
-    if(bulletLevel > 3) config.getBallDamage(3)
+    if(bulletLevel > 2) config.getBallDamage(2)
     else config.getBallDamage(bulletLevel)
   }
 
@@ -69,6 +69,10 @@ case class Breaker(
       curBulletNum = curBulletNum - 1
       Some(gunDirection,getLaunchBulletPosition(),getTankBulletDamage())
     }else None
+  }
+
+  def fillBullet()={
+    curBulletNum+=1
   }
 
   def getPosition4Animation(offsetTime:Long) = {

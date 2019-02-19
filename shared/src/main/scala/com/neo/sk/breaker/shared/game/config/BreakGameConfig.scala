@@ -26,6 +26,8 @@ trait BreakGameConfig {
 
   val ballMaxFly: Byte
 
+  val fillBallFrame:Int
+
   def getBallRadius(l: Byte): Float
 
   def getBallDamage(l: Byte): Int

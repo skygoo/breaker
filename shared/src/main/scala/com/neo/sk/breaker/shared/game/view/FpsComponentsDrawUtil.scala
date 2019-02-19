@@ -11,11 +11,6 @@ trait FpsComponentsDrawUtil{ this:GameContainerClientImpl =>
   private var lastRenderTimes = 0
   private var renderTimes = 0
   private val isRenderFps:Boolean = true
-  private var canvasBoundary:Point=canvasSize
-
-  def updateFpsSize(canvasSize:Point)={
-    canvasBoundary = canvasSize
-  }
 
 
   private def addFps() ={

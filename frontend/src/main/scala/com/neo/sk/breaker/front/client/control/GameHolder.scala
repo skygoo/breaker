@@ -45,10 +45,10 @@ abstract class GameHolder(name: String) extends NetworkInfo {
       println(exception.getCause)
   }
 
+  def gameOverCallback():Unit
+
   protected val gameStateVar: Var[Int] = Var(GameState.firstCome)
   protected var gameState: Int = GameState.firstCome
-
-  //  protected var killerName:String = ""
 
 
   protected var gameContainerOpt: Option[GameContainerClientImpl] = None
@@ -57,7 +57,6 @@ abstract class GameHolder(name: String) extends NetworkInfo {
 
 
   protected var timer: Int = 0
-  //  protected var reStartTimer:Int = 0
   /**
     * 倒计时，config
     **/
@@ -144,7 +143,12 @@ abstract class GameHolder(name: String) extends NetworkInfo {
     gameState match {
       case GameState.loadingPlay =>
         println(s"等待同步数据")
-        gameContainerOpt.foreach(_.drawGameLoading())
+        drawWebLoading()
+
+      case GameState.loadingWait =>
+        println(s"数据连接中")
+        drawGameLoading()
+
       case GameState.play =>
         gameContainerOpt.foreach(_.update())
         logicFrameTime = System.currentTimeMillis()
@@ -153,9 +157,7 @@ abstract class GameHolder(name: String) extends NetworkInfo {
       case GameState.stop =>
         //remind 此处需要注意
         dom.document.getElementById("input_mask_id").asInstanceOf[dom.html.Div].focus()
-        gameContainerOpt.foreach{r =>r.update()}
-        logicFrameTime = System.currentTimeMillis()
-        ping()
+        gameContainerOpt.foreach(r=>r.drawCombatGains())
 
       case _ => println(s"state=$gameState failed")
     }
@@ -188,5 +190,25 @@ abstract class GameHolder(name: String) extends NetworkInfo {
   protected def wsMessageHandler(data: BreakerEvent.WsMsgServer)
 
 
-  protected def getCanvasUnit(canvasHeight: Float): Float = (canvasHeight / Constants.WindowView.y)
+  protected def getCanvasUnit(canvasHeight: Float): Float = canvasHeight / Constants.WindowView.y
+
+  def drawWebLoading():Unit = {
+    ctx.setFill("rgb(0,0,0)")
+    ctx.fillRec(0, 0, canvasBoundary.x * canvasUnit, canvasBoundary.y * canvasUnit)
+    ctx.setFill("rgb(250, 250, 250)")
+    ctx.setTextAlign("left")
+    ctx.setTextBaseline("top")
+    ctx.setFont(s"Helvetica","normal",3.6 * canvasUnit)
+    ctx.fillText("请稍等，连接服务器中", 150, 180)
+  }
+
+  def drawGameLoading():Unit = {
+    ctx.setFill("rgb(0,0,0)")
+    ctx.fillRec(0, 0, canvasBoundary.x * canvasUnit, canvasBoundary.y * canvasUnit)
+    ctx.setFill("rgb(250, 250, 250)")
+    ctx.setTextAlign("left")
+    ctx.setTextBaseline("top")
+    ctx.setFont(s"Helvetica","normal",3.6 * canvasUnit)
+    ctx.fillText("请稍等，匹配游戏中", 150, 180)
+  }
 }

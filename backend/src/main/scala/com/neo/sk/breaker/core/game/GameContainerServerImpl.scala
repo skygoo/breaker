@@ -11,7 +11,7 @@ import com.neo.sk.breaker.shared.game.config.{BreakGameConfig, BreakGameConfigIm
 import com.neo.sk.breaker.shared.model.Constants.ObstacleType
 import com.neo.sk.breaker.shared.model.{Constants, Point}
 import com.neo.sk.breaker.shared.protocol.BreakerEvent
-import com.neo.sk.breaker.shared.protocol.BreakerEvent.{UserJoinRoom, UserLeftRoom}
+import com.neo.sk.breaker.shared.protocol.BreakerEvent.{GameOver, UserJoinRoom, UserLeftRoom}
 import org.slf4j.Logger
 
 import scala.util.Random
@@ -37,7 +37,9 @@ case class GameContainerServerImpl(
   private val random = new Random(System.currentTimeMillis())
 
   //remind 用于生成新行
-  private val positionList=mutable.HashMap[Int,List[Int]]()
+  protected var upLine=(config.totalWallRow-config.brickRow)/2
+  protected var downLine=(config.totalWallRow+config.brickRow)/2-1
+  private val positionList=mutable.HashMap[Int,List[(Int,Byte)]]()
   private var justJoinUser: List[(String, String,Int, ActorRef[UserActor.Command],ActorRef[BreakerEvent.WsMsgSource])] = Nil // tankIdOpt
 
 
@@ -64,7 +66,7 @@ case class GameContainerServerImpl(
 
   private def generateAirDrop(position:Point) = {
     val oId = obstacleIdGenerator.getAndIncrement()
-    PropBox(config, oId, position, random.nextInt(config.propMaxBlood)+1, random.nextInt(Constants.PropType.typeSize).toByte)
+    PropBox(config, oId, position, random.nextInt(config.propMaxBlood)+1, Some(random.nextInt(Constants.PropType.typeSize).toByte))
   }
 
   private def generateBrick(position:Point) = {
@@ -77,19 +79,52 @@ case class GameContainerServerImpl(
     Wall(config, oId, position)
   }
 
+  private def generateObstacle(plist:List[(Int,Point)]) = {
+    val pList=mutable.HashSet[(Int,Point)]()
+    plist.foreach(l=>pList.add(l))
+    val propSize=random.nextInt(3)
+    (1 until propSize).foreach{_=>
+      val list=pList.toList
+      val p=list(random.nextInt(list.size))
+      val obstacle = generateAirDrop(p._2)
+      pList.remove(p)
+      val event = BreakerEvent.GenerateObstacle(systemFrame+1, obstacle.getObstacleState())
+      addGameEvent(event)
+      dispatch(event)
+      positionList.get(p._1) match {
+        case Some(value)=>
+          positionList.update(p._1,(obstacle.oId,obstacle.obstacleType)::value)
+        case None=>
+          positionList.put(p._1,List((obstacle.oId,obstacle.obstacleType)))
+      }
+    }
+    pList.foreach { p =>
+      val obstacle = generateBrick(p._2)
+      val event = BreakerEvent.GenerateObstacle(systemFrame+1, obstacle.getObstacleState())
+      addGameEvent(event)
+      dispatch(event)
+      positionList.get(p._1) match {
+        case Some(value)=>
+          positionList.update(p._1,(obstacle.oId,obstacle.obstacleType)::value)
+        case None=>
+          positionList.put(p._1,List((obstacle.oId,obstacle.obstacleType)))
+      }
+    }
+  }
+
   private def initObstacle(pList:mutable.HashSet[(Int,Point)]) = {
     (1 to config.propNum).foreach { _ =>
       val list=pList.toList
       val p=list(random.nextInt(list.size))
       val obstacle = generateAirDrop(p._2)
       pList.remove(p)
-      val event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
-      addGameEvent(event)
+//      val event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
+//      addGameEvent(event)
       positionList.get(p._1) match {
         case Some(value)=>
-          positionList.update(p._1,obstacle.oId::value)
+          positionList.update(p._1,(obstacle.oId,obstacle.obstacleType)::value)
         case None=>
-          positionList.put(p._1,List(obstacle.oId))
+          positionList.put(p._1,List((obstacle.oId,obstacle.obstacleType)))
       }
       obstacleMap.put(obstacle.oId, obstacle)
       quadTree.insert(obstacle)
@@ -100,9 +135,9 @@ case class GameContainerServerImpl(
       addGameEvent(event)
       positionList.get(p._1) match {
         case Some(value)=>
-          positionList.update(p._1,obstacle.oId::value)
+          positionList.update(p._1,(obstacle.oId,obstacle.obstacleType)::value)
         case None=>
-          positionList.put(p._1,List(obstacle.oId))
+          positionList.put(p._1,List((obstacle.oId,obstacle.obstacleType)))
       }
       obstacleMap.put(obstacle.oId, obstacle)
       quadTree.insert(obstacle)
@@ -112,13 +147,13 @@ case class GameContainerServerImpl(
   private def initEnvironment()={
     for(i <- 2 until config.totalWallRow+2){
       var obstacle = generateWall(Point(config.obstacleWidth/2,yPosition*i+config.obstacleWidth/2))
-      var event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
-      addGameEvent(event)
+//      var event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
+//      addGameEvent(event)
       environmentMap.put(obstacle.oId, obstacle)
       quadTree.insert(obstacle)
       obstacle = generateWall(Point(boundary.x-config.obstacleWidth/2,yPosition*i+config.obstacleWidth/2))
-      event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
-      addGameEvent(event)
+//      event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
+//      addGameEvent(event)
       environmentMap.put(obstacle.oId, obstacle)
       quadTree.insert(obstacle)
     }
@@ -126,12 +161,11 @@ case class GameContainerServerImpl(
 
   private def init()={
     val pList=mutable.HashSet[(Int,Point)]()
-    for(i <- upLine until downLine){
+    for(i <- upLine to downLine){
       genObstaclePositionRandom(i).foreach(p=>pList.add(p))
     }
     initObstacle(pList)
     initEnvironment()
-//    println(positionList)
   }
 
   /**初始化环境*/
@@ -188,15 +222,17 @@ case class GameContainerServerImpl(
     }
   }
 
-  def leftGame(playerId: String, name: String, breakId: Int) = {
-    log.info(s"bot/user leave $playerId")
-    val event = BreakerEvent.UserLeftRoom(playerId, name, breakId, systemFrame)
-    addGameEvent(event)
-    dispatch(event)
+  def leftGame(playerId: String) = {
+    breakMap.find(_._2.playerId==playerId).foreach{r=>
+      log.info(s"bot/user leave $playerId")
+      val event = BreakerEvent.UserLeftRoom(playerId, r._2.name, r._2.breakId, systemFrame)
+      addGameEvent(event)
+      dispatch(event)
+    }
   }
 
-  override protected def handleUserLeftRoom(e: UserLeftRoom): Unit = {
-    super.handleUserLeftRoom(e)
+  override protected def handleGameOver(e: GameOver): Unit = {
+    super.handleGameOver(e)
     roomActorRef ! RoomActor.GameStopRoom
   }
 
@@ -211,6 +247,84 @@ case class GameContainerServerImpl(
       quadTree.insert(obstacle)
     }
   }
+
+  override protected def handleObstacleAttacked(e: BreakerEvent.ObstacleAttacked): Unit = {
+    obstacleMap.get(e.obstacleId).foreach { obstacle =>
+      obstacle.attackDamage(e.damage)
+      if (!obstacle.isLived()) {
+        //砖块消失
+        val event = BreakerEvent.ObstacleRemove(e.obstacleId,e.breakId,e.ballId,systemFrame)
+        dispatch(event)
+        addGameEvent(event)
+
+        positionList.filter(_._2.map(_._1).contains(e.obstacleId)).foreach(h=>
+          positionList.update(h._1,h._2.filterNot(_._1==e.obstacleId))
+        )
+      }
+    }
+  }
+
+  protected def handleGenerateBrickNow()={
+    positionList.get(upLine) match {
+      case Some(value)=>
+        if(value.isEmpty){
+          positionList.remove(upLine)
+          upLine+=1
+          downLine+=1
+          if(downLine>=config.totalWallRow){
+            breakMap.find(_._2.up).foreach{ b=>
+              val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
+              addGameEvent(event)
+              dispatch(event)
+            }
+          }else{
+            generateObstacle(genObstaclePositionRandom(downLine))
+          }
+        }
+      case None=>
+        upLine+=1
+        downLine+=1
+        if(downLine>=config.totalWallRow){
+          breakMap.find(_._2.up).foreach{ b=>
+            val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
+            addGameEvent(event)
+            dispatch(event)
+          }
+        }else{
+          generateObstacle(genObstaclePositionRandom(downLine))
+        }
+    }
+    positionList.get(downLine) match {
+      case Some(value)=>
+        if(value.isEmpty){
+          positionList.remove(downLine)
+          upLine-=1
+          downLine-=1
+          if(upLine<0){
+            breakMap.find(!_._2.up).foreach{ b=>
+              val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
+              addGameEvent(event)
+              dispatch(event)
+            }
+          }else{
+            generateObstacle(genObstaclePositionRandom(upLine))
+          }
+        }
+      case None=>
+        upLine-=1
+        downLine-=1
+        if(upLine<0){
+          breakMap.find(!_._2.up).foreach{ b=>
+            val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
+            addGameEvent(event)
+            dispatch(event)
+          }
+        }else{
+          generateObstacle(genObstaclePositionRandom(upLine))
+        }
+    }
+  }
+
 
   override def tankExecuteLaunchBulletAction(breaker: Breaker): Unit = {
     def transformGenerateBulletEvent(ballState: BallState, s:Boolean=true) = {
@@ -228,6 +342,7 @@ case class GameContainerServerImpl(
   }
 
   override protected def clearEventWhenUpdate(): Unit = {
+    handleGenerateBrickNow()
     gameEventMap -= systemFrame - 1
     actionEventMap -= systemFrame - 1
     systemFrame += 1

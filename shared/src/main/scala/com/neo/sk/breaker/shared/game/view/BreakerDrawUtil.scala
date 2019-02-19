@@ -13,11 +13,9 @@ import com.neo.sk.breaker.shared.model.Constants.BreakColor
   */
 trait BreakerDrawUtil {this:GameContainerClientImpl =>
   private val myTankInfoCacheMap = mutable.HashMap[(Byte,Byte,Byte), Any]()
-  private var canvasBoundary:Point=canvasSize
 
-  def updateTankSize(canvasSize:Point)={
+  def updateBreakSize()={
     myTankInfoCacheMap.clear()
-    canvasBoundary=canvasSize
   }
 
 
@@ -28,7 +26,7 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
       }else{
         breaker.getPosition4Animation(offsetTime) + offset
       }
-      val gunPositionList = breaker.getGunPositions4Animation().map(t => (t + p) * canvasUnit)
+      val gunPositionList = breaker.getGunPositions4Animation().map(t => (if(up) p-t else t+p) * canvasUnit)
       ctx.beginPath()
       ctx.moveTo(gunPositionList.last.x, gunPositionList.last.y)
       gunPositionList.foreach(t => ctx.lineTo(t.x, t.y))
@@ -42,7 +40,7 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
 
       ctx.beginPath()
       ctx.setLineWidth( 0.4 * canvasUnit)
-      ctx.setStrokeStyle("#636363")
+      if(breaker.getBulletSize()>0) ctx.setStrokeStyle("#4EEE94") else ctx.setStrokeStyle("#636363")
       val centerX = p.x * canvasUnit
       val centerY = p.y * canvasUnit
       val radius =  config.breakRadius * canvasUnit

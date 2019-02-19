@@ -13,35 +13,33 @@ import scala.collection.mutable
   */
 trait BackDrawUtil {this:GameContainerClientImpl=>
   private val cacheCanvasMap = mutable.HashMap.empty[String, Any]
-  private var canvasBoundary:Point=canvasSize
 
 
-  def updateBackSize(canvasSize:Point)={
+  def updateBackSize()={
     cacheCanvasMap.clear()
-    canvasBoundary=canvasSize
  }
 
 
   private def generateBackgroundCanvas() = {
-    val cacheCanvas = drawFrame.createCanvas(((boundary.x + canvasBoundary.x) * canvasUnit).toInt,((boundary.y + canvasBoundary.y) * canvasUnit).toInt)
+    val cacheCanvas = drawFrame.createCanvas(((boundary.x + canvasSize.x) * canvasUnit).toInt,((boundary.y + canvasSize.y) * canvasUnit).toInt)
     val cacheCanvasCtx=cacheCanvas.getCtx
-    clearScreen("#BEBEBE", 1, boundary.x + canvasBoundary.x, boundary.y + canvasBoundary.y, cacheCanvasCtx)
-    clearScreen("#E8E8E8",1, boundary.x, boundary.y, cacheCanvas.getCtx, canvasBoundary / 2)
+    clearScreen("#BEBEBE", 1, boundary.x + canvasSize.x, boundary.y + canvasSize.y, cacheCanvasCtx)
+    clearScreen("#E8E8E8",1, boundary.x, boundary.y, cacheCanvas.getCtx, canvasSize / 2)
 
     cacheCanvasCtx.setLineWidth(1)
     cacheCanvasCtx.setStrokeStyle("rgba(0,0,0,0.5)")
-    for(i <- 0  to((boundary.x + canvasBoundary.x).toInt,2)){
-      drawLine(Point(i,0), Point(i, boundary.y + canvasBoundary.y), cacheCanvasCtx)
+    for(i <- 0  to((boundary.x + canvasSize.x).toInt,2)){
+      drawLine(Point(i,0), Point(i, boundary.y + canvasSize.y), cacheCanvasCtx)
     }
 
-    for(i <- 0  to((boundary.y + canvasBoundary.y).toInt,2)){
-      drawLine(Point(0 ,i), Point(boundary.x + canvasBoundary.x, i), cacheCanvasCtx)
+    for(i <- 0  to((boundary.y + canvasSize.y).toInt,2)){
+      drawLine(Point(0 ,i), Point(boundary.x + canvasSize.x, i), cacheCanvasCtx)
     }
     cacheCanvas.change2Image()
   }
 
 
-  private def clearScreen(color:String, alpha:Double, width:Float = canvasBoundary.x, height:Float = canvasBoundary.y, middleCanvas:MiddleContext , start:Point = Point(0,0)):Unit = {
+  private def clearScreen(color:String, alpha:Double, width:Float = canvasSize.x, height:Float = canvasSize.y, middleCanvas:MiddleContext, start:Point = Point(0,0)):Unit = {
     middleCanvas.setFill(color)
     middleCanvas.setGlobalAlpha(alpha)
     middleCanvas.fillRec(start.x * canvasUnit, start.y * canvasUnit,  width * this.canvasUnit, height * this.canvasUnit)
@@ -65,6 +63,6 @@ trait BackDrawUtil {this:GameContainerClientImpl=>
   }*/
 
   protected def drawBackground() = {
-    clearScreen("#E8E8E8",1, canvasBoundary.x, canvasBoundary.y, ctx)
+    clearScreen("#E8E8E8",1, canvasSize.x, canvasSize.y, ctx)
   }
 }

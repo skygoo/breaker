@@ -28,8 +28,6 @@ case class Ball(
   //  val momentum: Point = momentum
   override val radius: Float = config.getBallRadiusByDamage(damage)
 
-  val maxFly:Int = config.ballMaxFly
-
   // 获取子弹外形
   override def getObjectRect(): Rectangle = {
     Rectangle(this.position - Point(this.radius,this.radius),this.position + Point(this.radius, this.radius))
@@ -38,12 +36,6 @@ case class Ball(
 
   def getBulletState(): BallState = {
     `object`.BallState(bId,breakId,position,damage.toByte,momentum)
-  }
-
-
-  //子弹碰撞检测
-  def isIntersectsObject(o: ObjectOfGame):Boolean = {
-    this.isIntersects(o)
   }
 
   // 生命周期是否截至
@@ -55,7 +47,7 @@ case class Ball(
   }
 
   // 先检测是否生命周期结束，如果没结束继续移动
-  def move(boundary: Point,quadTree: QuadTree,flyEndCallBack:Ball => Unit):Unit = {
+  def move(boundary: Point,quadTree: QuadTree,flyEndCallBack:Ball => Unit,attackCallBack: Obstacle =>Unit):Unit = {
     if(isFlyEnd(boundary)){
       flyEndCallBack(this)
     } else{
@@ -69,6 +61,9 @@ case class Ball(
           if (!otherObjects.exists(t => t.isIntersects(this))) {
             quadTree.updateObject(this)
           } else {
+            otherObjects.filter(r=>r.isIntersects(this)&& !r.isInstanceOf[Ball]).foreach{o=>
+              flyDecCount+=1
+              attackCallBack(o.asInstanceOf[Obstacle])}
             this.position = originPosition
             if(d.x==0){
               momentum=momentum.copy(y= -momentum.y)
@@ -79,13 +74,6 @@ case class Ball(
           }
         }
       }
-    }
-  }
-
-  // 检测是否子弹有攻击到，攻击到，执行回调函数
-  def checkAttackObject[T <: ObjectOfGame](o:T,attackCallBack:T => Unit):Unit = {
-    if(this.isIntersects(o)){
-      attackCallBack(o)
     }
   }
 

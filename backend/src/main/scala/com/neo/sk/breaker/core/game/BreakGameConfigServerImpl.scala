@@ -30,9 +30,9 @@ case class BreakGameConfigServerImpl(config: Config){
     .requiring(t => t >= 1l,"minimum game frame duration is 1 ms")
 
   private[this] val ballRadius = config.getDoubleList("breakerGame.ball.ballRadius")
-    .requiring(_.size() >= 3,"ball radius size has 3 type").asScala.toList.map(_.toFloat)
+    .requiring(_.size() >= 2,"ball radius size has 2 type").asScala.toList.map(_.toFloat)
   private[this] val ballDamage = config.getIntList("breakerGame.ball.ballDamage")
-    .requiring(_.size() >= 3,"ball damage size has 3 type").asScala.toList.map(_.toInt)
+    .requiring(_.size() >= 2,"ball damage size has 2 type").asScala.toList.map(_.toInt)
   private[this] val maxFly = config.getInt("breakerGame.ball.maxFly").toByte
     .requiring(_ > 0,"minimum ball max fly is 1")
   private[this] val ballSpeedData = config.getInt("breakerGame.ball.ballSpeed")
@@ -66,8 +66,10 @@ case class BreakGameConfigServerImpl(config: Config){
     .requiring(_ > 0,"minimum supported break gun width is 1")
   private[this] val breakGunHeightData = config.getInt("breakerGame.break.gunHeight")
     .requiring(_ > 0,"minimum supported break gun height is 1")
+  private[this] val breakFillBulletFrame = config.getInt("breakerGame.break.fillBulletFrame")
+    .requiring(_ > 0,"minimum supported break fillBulletFrame is 1")
 
-  private val breakParameters = BreakerParameters(breakRadiusData,breakGunWidthData,breakGunHeightData)
+  private val breakParameters = BreakerParameters(breakRadiusData,breakGunWidthData,breakGunHeightData,breakFillBulletFrame)
 
   val gameConfig = BreakGameConfigImpl(gridBoundary,gameFameDuration,ballParameters,obstacleParameters,breakParameters)
 

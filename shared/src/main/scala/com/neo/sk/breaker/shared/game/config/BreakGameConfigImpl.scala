@@ -22,16 +22,17 @@ final case class BreakerMoveSpeed(
 }
 
 final case class BreakerParameters(
-//                                    breakSpeed: BreakerMoveSpeed,
-                                    breakRadius:Float,
-                                    breakGunWidth:Float,
-                                    breakGunHeight:Float
+                                    //                                    breakSpeed: BreakerMoveSpeed,
+                                    breakRadius: Float,
+                                    breakGunWidth: Float,
+                                    breakGunHeight: Float,
+                                    fillBulletFrame: Int
                                   )
 
 final case class PropParameters(
-                                    blood: Byte,
-                                    num: Int
-                                  )
+                                 blood: Byte,
+                                 num: Int
+                               )
 
 final case class BrickParameters(
                                   blood: Byte,
@@ -50,7 +51,7 @@ final case class BallParameters(
                                  maxFly: Byte,
                                  ballSpeed: Int,
                                ) {
-  require(ballLevelParameters.size >= 3, println(s"ball level parameter failed"))
+  require(ballLevelParameters.size >= 2, println(s"ball level parameter failed"))
 
   def getBallRadius(l: Byte) = {
     ballLevelParameters(l - 1)._1
@@ -76,21 +77,21 @@ case class BreakGameConfigImpl(
                                 obstacleParameters: ObstacleParameters,
                                 breakerParameters: BreakerParameters
                               ) extends BreakGameConfig {
-  def getBreakGameConfigImpl(): BreakGameConfigImpl=this
+  def getBreakGameConfigImpl(): BreakGameConfigImpl = this
 
   val ballSpeed: Point = Point(ballParameters.ballSpeed, 0)
 
   val ballMaxFly: Byte = ballParameters.maxFly
 
-  override def getBallRadius(l: Byte): Float=ballParameters.getBallRadius(l)
+  override def getBallRadius(l: Byte): Float = ballParameters.getBallRadius(l)
 
-  def getBallDamage(l: Byte): Int=ballParameters.getBallDamage(l)
+  def getBallDamage(l: Byte): Int = ballParameters.getBallDamage(l)
 
-  def getBallLevel(damage: Int): Byte=ballParameters.getBallLevelByDamage(damage)
+  def getBallLevel(damage: Int): Byte = ballParameters.getBallLevelByDamage(damage)
 
-  def getBallMaxLevel(): Byte=ballParameters.ballLevelParameters.size.toByte
+  def getBallMaxLevel(): Byte = ballParameters.ballLevelParameters.size.toByte
 
-  def getBallRadiusByDamage(d:Int):Float = ballParameters.getBallRadiusByDamage(d)
+  def getBallRadiusByDamage(d: Int): Float = ballParameters.getBallRadiusByDamage(d)
 
   val boundary: Point = gridBoundary.getBoundary
 
@@ -106,9 +107,11 @@ case class BreakGameConfigImpl(
 
   val brickNum: Int = obstacleParameters.brickParameters.num
 
-  override val breakGunWidth: Float=breakerParameters.breakGunWidth
+  override val breakGunWidth: Float = breakerParameters.breakGunWidth
 
   override val breakRadius: Float = breakerParameters.breakRadius
 
   override val breakGunHeight: Float = breakerParameters.breakGunHeight
+
+  override val fillBallFrame: Int = breakerParameters.fillBulletFrame
 }

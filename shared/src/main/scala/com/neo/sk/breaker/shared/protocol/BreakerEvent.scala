@@ -72,10 +72,14 @@ object BreakerEvent {
   /**生成砖块*/
   final case class GenerateObstacle(override val frame:Long,obstacleState: ObstacleState) extends EnvironmentEvent with WsMsgServer
   /**砖块消失事件*/
-  final case class ObstacleRemove(obstacleId:Int, override val frame:Long) extends EnvironmentEvent with WsMsgServer
+  final case class ObstacleRemove(obstacleId:Int,breakId:Int,ballId:Int, override val frame:Long) extends EnvironmentEvent with WsMsgServer
+  /**砖块移动事件*/
+  final case class ObstacleMove(up:Boolean, override val frame:Long) extends EnvironmentEvent with WsMsgServer
+
+  final case class GameOver(breakId:Int,override val frame:Long)extends EnvironmentEvent with WsMsgServer
+
 
   /**游戏逻辑产生事件*/
-  final case class ObstacleAttacked(obstacleId:Int, ballId:Int, damage:Int, override val frame:Long) extends EnvironmentEvent
-
+  final case class ObstacleAttacked(obstacleId:Int,breakId:Int, ballId:Int, damage:Int, override val frame:Long) extends EnvironmentEvent
 
 }
