@@ -92,9 +92,37 @@ class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extend
     }
   }
 
+  private def addUserComeBackListenEvent()={
+    var spaceKeyUpState = true
+    if(gameState==GameState.stop){
+      canvas.getCanvas.focus()
+      canvas.getCanvas.onkeydown = { e: dom.KeyboardEvent =>
+        val keyCode = changeKeys(e.keyCode)
+        if (keyCode == KeyCode.Space && spaceKeyUpState) {
+          //          audioForBullet.play()
+          spaceKeyUpState = false
+          println("reStart------!")
+          val preExecuteAction = BreakerEvent.StartGame
+          sendMsg2Server(preExecuteAction) //发送鼠标位置
+          Shortcut.cancelSchedule(timer)
+          timer = Shortcut.schedule(gameLoop, 100)
+          setGameState(GameState.loadingWait)
+          e.preventDefault()
+        }
+      }
+      canvas.getCanvas.onkeyup = { e: dom.KeyboardEvent =>
+        val keyCode = changeKeys(e.keyCode)
+        if (keyCode == KeyCode.Space) {
+          spaceKeyUpState = true
+        }
+      }
+    }
+  }
+
   override def gameOverCallback(): Unit = {
     setGameState(GameState.stop)
-//    closeHolder
+    Shortcut.cancelSchedule(timer)
+    addUserComeBackListenEvent()
   }
 
   override protected def wsMessageHandler(data: WsMsgServer): Unit = {
@@ -102,6 +130,7 @@ class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extend
     data match {
       case WsSuccess =>
         webSocketClient.sendMsg(BreakerEvent.StartGame)
+        Shortcut.cancelSchedule(timer)
         timer = Shortcut.schedule(gameLoop, 100)
         setGameState(GameState.loadingWait)
 

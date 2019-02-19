@@ -128,23 +128,6 @@ trait GameContainer {
 
   protected def handleObstacleRemove(e:ObstacleRemove) :Unit = {
     obstacleMap.get(e.obstacleId).foreach { obstacle =>
-      info(s"remove Obstacle ---$e")
-      if(obstacle.obstacleType==ObstacleType.airDropBox){
-        obstacle.propType.foreach {
-          case PropType.addBallProp =>
-            breakMap.get(e.breakId) match {
-              case Some(value)=>
-                value.fillBullet()
-              case None=>
-            }
-          case PropType.decBallProp =>
-            ballMap.get(e.ballId) match {
-              case Some(value)=>
-                removeBall(value)
-              case None=>
-            }
-        }
-      }
       quadTree.remove(obstacle)
       obstacleMap.remove(e.obstacleId)
     }

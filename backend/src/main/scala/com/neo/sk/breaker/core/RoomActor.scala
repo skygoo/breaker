@@ -10,7 +10,7 @@ import akka.stream.scaladsl.Flow
 import com.neo.sk.breaker.common.{AppSettings, Constants}
 import com.neo.sk.breaker.core.RoomManager.Command
 import com.neo.sk.breaker.core.game.GameContainerServerImpl
-import com.neo.sk.breaker.protocol.ActorProtocol.{JoinRoom, LeftRoom}
+import com.neo.sk.breaker.protocol.ActorProtocol.{GameOver, JoinRoom, LeftRoom}
 import com.neo.sk.breaker.shared.model.Constants.GameState
 import com.neo.sk.breaker.shared.protocol
 import com.neo.sk.breaker.shared.protocol.BreakerEvent
@@ -44,8 +44,6 @@ object RoomActor {
   trait Command
 
   case object GameLoop extends Command
-
-  case object GameStopRoom extends Command
 
   case class WebSocketMsg(req: BreakerEvent.UserActionEvent) extends Command with RoomManager.Command
 
@@ -119,14 +117,15 @@ object RoomActor {
           gameContainer.receiveUserAction(req)
           Behaviors.same
 
-        case GameStopRoom=>
-
+        case GameOver=>
+          subscribersMap.values.foreach(_._1 ! GameOver)
           Behaviors.stopped
 
         case msg:LeftRoom=>
           log.debug(s"roomActor left room:${msg.userInfo.playerId}")
           gameContainer.leftGame(msg.userInfo.playerId.getOrElse(""))
-          Behaviors.stopped
+          subscribersMap.remove(msg.userInfo.playerId.getOrElse(""))
+          Behaviors.same
 
         case _ =>
           log.warn(s"${ctx.self.path} recv a unknow msg=${msg}")

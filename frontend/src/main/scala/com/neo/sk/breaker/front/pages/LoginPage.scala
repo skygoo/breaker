@@ -52,7 +52,7 @@ object LoginPage extends Page {
     case 0 =>
       <div class="filter-main-middle-r">
         <div id="general-css-word" style="display:inline-block;letter-spacing: 0.26px;line-height: 22px;color: #1D2341;">昵称</div>
-        <input id="createTagInput" placeholder="请选择昵称" value={getRandomName} maxlength="30"
+        <input id="createTagInput" placeholder="请选择昵称" value={playerInfo.nickName} maxlength="30"
                style="background: #FFFFFF;border: 1px solid rgba(142,152,180,0.50);border-radius: 4px;height: 32px;padding-right:55px" oninput={e: Event =>
               dom.document.getElementById("createTagInput").asInstanceOf[Input].style.border = "1px solid rgba(142,152,180,0.50)"
               val elem = e.target.asInstanceOf[Input]

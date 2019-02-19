@@ -8,7 +8,7 @@ import com.neo.sk.breaker.protocol.ActorProtocol
 import com.neo.sk.breaker.shared.`object`._
 import com.neo.sk.breaker.shared.game.GameContainer
 import com.neo.sk.breaker.shared.game.config.{BreakGameConfig, BreakGameConfigImpl}
-import com.neo.sk.breaker.shared.model.Constants.ObstacleType
+import com.neo.sk.breaker.shared.model.Constants.{ObstacleType, PropType}
 import com.neo.sk.breaker.shared.model.{Constants, Point}
 import com.neo.sk.breaker.shared.protocol.BreakerEvent
 import com.neo.sk.breaker.shared.protocol.BreakerEvent.{GameOver, UserJoinRoom, UserLeftRoom}
@@ -233,7 +233,7 @@ case class GameContainerServerImpl(
 
   override protected def handleGameOver(e: GameOver): Unit = {
     super.handleGameOver(e)
-    roomActorRef ! RoomActor.GameStopRoom
+    roomActorRef ! ActorProtocol.GameOver
   }
 
   override protected def handleGenerateObstacle(e: BreakerEvent.GenerateObstacle): Unit = {
@@ -250,6 +250,22 @@ case class GameContainerServerImpl(
 
   override protected def handleObstacleAttacked(e: BreakerEvent.ObstacleAttacked): Unit = {
     obstacleMap.get(e.obstacleId).foreach { obstacle =>
+      if(obstacle.obstacleType==ObstacleType.airDropBox){
+        obstacle.propType.foreach {
+          case PropType.addBallProp =>
+            breakMap.get(e.breakId) match {
+              case Some(value)=>
+                value.fillBullet()
+              case None=>
+            }
+          case PropType.decBallProp =>
+            ballMap.get(e.ballId) match {
+              case Some(value)=>
+                removeBall(value)
+              case None=>
+            }
+        }
+      }
       obstacle.attackDamage(e.damage)
       if (!obstacle.isLived()) {
         //砖块消失

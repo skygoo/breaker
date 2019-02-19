@@ -116,7 +116,7 @@ abstract class GameHolder(name: String) extends NetworkInfo {
   }
 
   protected def sendMsg2Server(msg: BreakerEvent.WsMsgFront): Unit = {
-    if (gameState == GameState.play)
+    if (gameState == GameState.play|| gameState==GameState.stop ||gameState == GameState.loadingWait)
       webSocketClient.sendMsg(msg)
   }
 
@@ -146,8 +146,8 @@ abstract class GameHolder(name: String) extends NetworkInfo {
         drawWebLoading()
 
       case GameState.loadingWait =>
-        println(s"数据连接中")
         drawGameLoading()
+        ping()
 
       case GameState.play =>
         gameContainerOpt.foreach(_.update())
@@ -155,18 +155,16 @@ abstract class GameHolder(name: String) extends NetworkInfo {
         ping()
 
       case GameState.stop =>
-        //remind 此处需要注意
-        dom.document.getElementById("input_mask_id").asInstanceOf[dom.html.Div].focus()
         gameContainerOpt.foreach(r=>r.drawCombatGains())
 
       case _ => println(s"state=$gameState failed")
     }
   }
 
-//  private def drawGame(offsetTime: Long) = {
-//    gameContainerOpt.foreach(_.drawGame(offsetTime, getNetworkLatency, dateSize))
   private def drawGame(offsetTime: Long) = {
-    gameContainerOpt.foreach(_.drawGame(offsetTime, getNetworkLatency))
+    if(gameState==GameState.play){
+      gameContainerOpt.foreach(_.drawGame(offsetTime, getNetworkLatency))
+    }
   }
 
 
@@ -203,6 +201,7 @@ abstract class GameHolder(name: String) extends NetworkInfo {
   }
 
   def drawGameLoading():Unit = {
+    println("数据连接中")
     ctx.setFill("rgb(0,0,0)")
     ctx.fillRec(0, 0, canvasBoundary.x * canvasUnit, canvasBoundary.y * canvasUnit)
     ctx.setFill("rgb(250, 250, 250)")

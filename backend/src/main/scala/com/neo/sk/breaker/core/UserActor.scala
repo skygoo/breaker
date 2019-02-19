@@ -116,7 +116,6 @@ object UserActor {
 
         case UserLeft(actor) =>
           ctx.unwatch(actor)
-          roomManager ! ActorProtocol.LeftRoom(userInfo)
           Behaviors.stopped
 
         case ChangeBehaviorToInit=>
@@ -148,8 +147,13 @@ object UserActor {
         case WebSocketMsg(reqOpt) =>
           reqOpt match {
             case Some(BreakerEvent.StartGame) =>
-              log.info("get ws msg startGame")
+              log.info(s"$userInfo get ws msg startGame")
               roomManager ! ActorProtocol.JoinRoom(userInfo,ctx.self,frontActor)
+
+            case Some(t:BreakerEvent.PingPackage) =>
+              frontActor ! BreakerEvent.Wrap(t.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+              Behaviors.same
+
             case _ =>
           }
           Behaviors.same
@@ -161,6 +165,7 @@ object UserActor {
 
         case UserLeft(actor) =>
           ctx.unwatch(actor)
+          roomManager ! ActorProtocol.LeftRoom(userInfo)
           Behaviors.stopped
 
         case ChangeBehaviorToInit=>
@@ -198,6 +203,10 @@ object UserActor {
                 frontActor ! BreakerEvent.Wrap(t.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
                 Behaviors.same
 
+              case StartGame =>
+                log.info("startGame")
+                Behaviors.same
+
               case _ =>
                 Behaviors.same
             }
@@ -208,6 +217,14 @@ object UserActor {
         case msg:DispatchMsg=>
           frontActor ! msg.msg
           Behaviors.same
+
+        case ActorProtocol.GameOver=>
+          switchBehavior(ctx, "idle", idle(userInfo, frontActor))
+
+        case UserLeft(actor) =>
+          ctx.unwatch(actor)
+          roomManager ! ActorProtocol.LeftRoom(userInfo)
+          Behaviors.stopped
 
         case ChangeBehaviorToInit=>
           switchBehavior(ctx, "init", init(userInfo))

@@ -18,4 +18,6 @@ object ActorProtocol {
   case class JoinRoomFail(msg:String) extends UserActor.Command
 
   case class LeftRoom(userInfo: UserInfo) extends RoomActor.Command with RoomManager.Command
+
+  case object GameOver extends RoomActor.Command with UserActor.Command
 }

@@ -3,7 +3,7 @@ package com.neo.sk.breaker.shared.game
 import com.neo.sk.breaker.shared.`object`.{Ball, Breaker, Obstacle}
 import com.neo.sk.breaker.shared.game.config.BreakGameConfig
 import com.neo.sk.breaker.shared.game.view._
-import com.neo.sk.breaker.shared.model.Constants.GameAnimation
+import com.neo.sk.breaker.shared.model.Constants.{GameAnimation, ObstacleType, PropType}
 import com.neo.sk.breaker.shared.model.Point
 import com.neo.sk.breaker.shared.protocol.BreakerEvent._
 import com.neo.sk.breaker.shared.util.canvas.{MiddleContext, MiddleFrame}
@@ -168,6 +168,22 @@ case class GameContainerClientImpl(
 
   override protected def handleObstacleAttacked(e: ObstacleAttacked): Unit = {
     obstacleMap.get(e.obstacleId).foreach{ obstacle =>
+      if(obstacle.obstacleType==ObstacleType.airDropBox){
+        obstacle.propType.foreach {
+          case PropType.addBallProp =>
+            breakMap.get(e.breakId) match {
+              case Some(value)=>
+                value.fillBullet()
+              case None=>
+            }
+          case PropType.decBallProp =>
+            ballMap.get(e.ballId) match {
+              case Some(value)=>
+                removeBall(value)
+              case None=>
+            }
+        }
+      }
       if(obstacle.isLived()){
         obstacle.attackDamage(e.damage)
       }

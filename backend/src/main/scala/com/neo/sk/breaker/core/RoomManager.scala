@@ -58,12 +58,12 @@ object RoomManager {
           Behaviors.same
 
         case msg:LeftRoom=>
-          roomInUse.find(_._2.exists(_._1 == msg.userInfo.playerId)) match{
+          roomInUse.find(_._2.exists(_._1 == msg.userInfo.playerId.getOrElse(""))) match{
             case Some(t) =>
               roomInUse.remove(t._1)
               getRoomActor(ctx,t._1) ! msg
               log.debug(s"玩家：${msg.userInfo.playerId}--${msg.userInfo.nickName}")
-            case None => log.debug(s"该玩家不在任何房间")
+            case None => log.debug(s"该玩家不在任何房间--${msg.userInfo}")
           }
           Behaviors.same
 

@@ -18,10 +18,10 @@ trait ObstacleDrawUtil{ this:GameContainerClientImpl =>
 
   private val obstacleCanvasCacheMap = mutable.HashMap[(Byte, Boolean), Any]()
 
-  private val steelImg =drawFrame.createImage("/img/wall.png")
+  private val steelImg =drawFrame.createImage("/img/瓷砖2.png")
 //  private val brickImg =drawFrame.createImage("/img/wall.png")
-  private val addBallImg =drawFrame.createImage("/img/addBall.png")
-  private val delBallImg =drawFrame.createImage("/img/decBall.png")
+  private val addBallImg =drawFrame.createImage("/img/加号2.png")
+  private val delBallImg =drawFrame.createImage("/img/减号2.png")
 
 
   protected def obstacleImgComplete: Boolean = steelImg.isComplete && addBallImg.isComplete && delBallImg.isComplete
