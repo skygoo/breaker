@@ -10,7 +10,7 @@ import com.neo.sk.breaker.shared.model.Point
   * Time at 下午3:21
   * 包围墙，不可打击
   */
-class Wall (
+case class Wall (
              config:BreakGameConfig,
              override val oId: Int,
              override protected var position: Point,

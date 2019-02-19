@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.neo.sk.breaker.front.common.Routes
 import com.neo.sk.breaker.front.pages.LoginPage
 import com.neo.sk.breaker.front.utils.{JsFunc, Shortcut}
+import com.neo.sk.breaker.shared.`object`.Breaker
 import com.neo.sk.breaker.shared.game.GameContainerClientImpl
 import com.neo.sk.breaker.shared.model.{Constants, Point}
 import com.neo.sk.breaker.shared.model.Constants.GameState
@@ -66,11 +67,11 @@ class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extend
     gameLoop()
   }
 
-  private def addUserActionListenEvent(): Unit = {
+  private def addUserActionListenEvent(up:Boolean,breakPosition:Point): Unit = {
     canvas.getCanvas.focus()
     canvas.getCanvas.onmousemove = { e: dom.MouseEvent =>
-      val point = Point(e.clientX.toFloat, e.clientY.toFloat) + Point(24, 24)
-      val theta = point.getTheta(canvasBoundary * canvasUnit / 2).toFloat
+      val point = Point(e.clientX.toFloat, e.clientY.toFloat)
+      val theta = if(up) point.getTheta(Point(canvasBoundary.*(canvasUnit).x/2,canvasBoundary.*(canvasUnit).y-breakPosition.y* canvasUnit)).toFloat else point.getTheta(Point(canvasBoundary.*(canvasUnit).x/2,breakPosition.y*canvasUnit)).toFloat
       if (gameContainerOpt.nonEmpty && gameState == GameState.play ) {
         val preMMFAction = BreakerEvent.UserMouseMove(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta,-1)
         gameContainerOpt.get.preExecuteUserEvent(preMMFAction)
@@ -80,11 +81,11 @@ class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extend
       if (gameContainerOpt.nonEmpty && gameState == GameState.play) {
         val tank=gameContainerOpt.get.breakMap.get(gameContainerOpt.get.myBreakId)
         if(tank.nonEmpty&&tank.get.getBulletSize()>0){
-          val point = Point(e.clientX.toFloat, e.clientY.toFloat) + Point(24, 24)
-          val theta = point.getTheta(canvasBoundary * canvasUnit / 2).toFloat
+          val point = Point(e.clientX.toFloat, e.clientY.toFloat)
+          val theta = if(up) point.getTheta(Point(canvasBoundary.*(canvasUnit).x/2,canvasBoundary.*(canvasUnit).y-breakPosition.y* canvasUnit)).toFloat else point.getTheta(Point(canvasBoundary.*(canvasUnit).x/2,breakPosition.y*canvasUnit)).toFloat
           val preExecuteAction = BreakerEvent.UC(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta, getActionSerialNum)
           gameContainerOpt.get.preExecuteUserEvent(preExecuteAction)
-          sendMsg2Server(preExecuteAction) //发送鼠标位置
+          sendMsg2Server(if(up) preExecuteAction.copy(d = -theta) else preExecuteAction) //发送鼠标位置
           e.preventDefault()
         }
         //        audioForBullet.play()
@@ -99,14 +100,16 @@ class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extend
         webSocketClient.sendMsg(BreakerEvent.StartGame)
 
       case e: BreakerEvent.YourInfo =>
-        println(s"new game the id is ${e.breakId}=====${e.name}")
+        val breaker=Breaker(e.config,e.break.playerId,e.break.breakId,e.break.name,e.break.position)
+        println(s"new game the id is ${breaker.breakId}=====${breaker.name}")
         println(s"玩家信息${e}")
         timer = Shortcut.schedule(gameLoop, e.config.frameDuration)
         /**
           * 更新游戏数据
           **/
-        gameContainerOpt = Some(GameContainerClientImpl(e.config,drawFrame, ctx, e.playerId, e.breakId, e.name, canvasBoundary, canvasUnit))
-        LoginPage.playerInfo=playerInfo.copy(nickName = e.name,playerId = Some(e.playerId))
+        gameContainerOpt = Some(GameContainerClientImpl(e.config,drawFrame, ctx, breaker.playerId, breaker.breakId, breaker.name, canvasBoundary, canvasUnit))
+        addUserActionListenEvent(breaker.up,breaker.getPosition)
+        LoginPage.playerInfo=playerInfo.copy(nickName = breaker.name,playerId = Some(breaker.playerId))
 
       case e: BreakerEvent.SyncGameState =>
         gameContainerOpt.foreach(_.receiveGameContainerState(e.state))
@@ -115,7 +118,6 @@ class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extend
         gameContainerOpt.foreach(_.receiveGameContainerAllState(e.gState))
         dom.window.cancelAnimationFrame(nextFrame)
         nextFrame = dom.window.requestAnimationFrame(gameRender())
-        addUserActionListenEvent()
         setGameState(GameState.play)
 
       case e: UserActionEvent =>

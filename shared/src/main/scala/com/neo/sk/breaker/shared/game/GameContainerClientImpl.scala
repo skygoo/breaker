@@ -2,7 +2,8 @@ package com.neo.sk.breaker.shared.game
 
 import com.neo.sk.breaker.shared.`object`.{Ball, Breaker, Obstacle}
 import com.neo.sk.breaker.shared.game.config.BreakGameConfig
-import com.neo.sk.breaker.shared.game.view.{BackDrawUtil, FpsComponentsDrawUtil, InfoDrawUtil, ObstacleDrawUtil}
+import com.neo.sk.breaker.shared.game.view._
+import com.neo.sk.breaker.shared.model.Constants.GameAnimation
 import com.neo.sk.breaker.shared.model.Point
 import com.neo.sk.breaker.shared.protocol.BreakerEvent._
 import com.neo.sk.breaker.shared.util.canvas.{MiddleContext, MiddleFrame}
@@ -22,16 +23,21 @@ case class GameContainerClientImpl(
                                     var myBreakId: Int,
                                     myName: String,
                                     var canvasSize: Point,
-                                    var canvasUnit: Int,
+                                    var canvasUnit: Float,
                                   ) extends GameContainer with EsRecover
   with BackDrawUtil
   with InfoDrawUtil
   with FpsComponentsDrawUtil
-  with ObstacleDrawUtil{
+  with ObstacleDrawUtil
+  with BallDrawUtil
+  with BreakerDrawUtil {
   def debug(msg: String) = println("debug:" + msg)
 
   def info(msg: String): Unit = println("info:" + msg)
 
+  val Pi = 3.14f
+
+  protected val obstacleAttackedAnimationMap = mutable.HashMap[Int, Int]()
   private var gameContainerAllStateOpt: Option[GameContainerAllState] = None
   private var gameContainerStateOpt: Option[GameContainerState] = None
   protected var waitSyncData: Boolean = true
@@ -39,7 +45,7 @@ case class GameContainerClientImpl(
   private val uncheckedActionMap = mutable.HashMap[Byte, Long]() //serinum -> frame
 
 
-  def updateClientSize(canvasS: Point, cUnit: Int) = {
+  def updateClientSize(canvasS: Point, cUnit: Float) = {
     canvasUnit = cUnit
     canvasSize = canvasS
   }
@@ -66,6 +72,11 @@ case class GameContainerClientImpl(
       quadTree.insert(bullet)
       ballMap.put(t.bId, bullet)
     }
+    gameContainerAllState.environment.foreach { t =>
+      val obstacle = Obstacle(config, t)
+      quadTree.insert(obstacle)
+      environmentMap.put(obstacle.oId, obstacle)
+    }
     waitSyncData = false
   }
 
@@ -88,12 +99,8 @@ case class GameContainerClientImpl(
   }
 
   def receiveGameContainerState(gameContainerState: GameContainerState) = {
-    if (gameContainerState.f > systemFrame) {
-
-    } else if (gameContainerState.f == systemFrame) {
-
-    } else {
-      info(s"收到同步数据，但未同步，curSystemFrame=${systemFrame},sync game container state frame=${gameContainerState.f}")
+    if (gameContainerState.f != systemFrame) {
+      gameContainerStateOpt = Some(gameContainerState)
     }
   }
 
@@ -149,6 +156,13 @@ case class GameContainerClientImpl(
     }
   }
 
+  override protected def handleObstacleAttacked(e: ObstacleAttacked): Unit = {
+    super.handleObstacleAttacked(e)
+    if (obstacleMap.get(e.obstacleId).nonEmpty || environmentMap.get(e.obstacleId).nonEmpty) {
+      obstacleAttackedAnimationMap.put(e.obstacleId, GameAnimation.bulletHitAnimationFrame)
+    }
+  }
+
   override def tankExecuteLaunchBulletAction(breaker: Breaker): Unit = {
     breaker.launchBullet()
   }
@@ -183,7 +197,7 @@ case class GameContainerClientImpl(
         clearEsRecoverData()
         addGameSnapShot(systemFrame, this.getGameContainerAllState())
       }
-    } else if (gameContainerStateOpt.nonEmpty && (gameContainerStateOpt.get.f - 1 == systemFrame || gameContainerStateOpt.get.f - 2 > systemFrame)) {
+    } else if (gameContainerStateOpt.nonEmpty) {
       info(s"同步数据，curSystemFrame=${systemFrame},sync game container state frame=${gameContainerStateOpt.get.f}")
       handleGameContainerState(gameContainerStateOpt.get)
       gameContainerStateOpt = None
@@ -211,9 +225,13 @@ case class GameContainerClientImpl(
       ctx.setLineCap("round")
       ctx.setLineJoin("round")
       breakMap.get(myBreakId) match {
-        case Some(tank) =>
-          val offset = Point(0,0)
-          drawObstacles(offset, Point(w, h))
+        case Some(break) =>
+          val offset = if(break.up) Point((w+boundary.x)/2,h) else Point((w-boundary.x)/2,0)
+          drawBackground()
+          drawObstacles(break.up,offset)
+          drawEnvironment(break.up,offset)
+          drawBalls(break.up,offset,offsetTime)
+          drawBreaker(break.up,offset,offsetTime)
           renderFps(networkLatency)
           val endTime = System.currentTimeMillis()
         //          renderTimes += 1

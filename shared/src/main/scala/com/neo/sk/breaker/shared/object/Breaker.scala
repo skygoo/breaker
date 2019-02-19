@@ -28,6 +28,7 @@ case class Breaker(
   override protected val width: Float = config.obstacleWidth
   override protected val collisionOffset: Float = config.obstacleWO
 
+  val up = if(position.y>config.boundary.y/2) false else true
   protected var curBulletNum:Int=1
   protected var gunDirection:Float=0
   protected var bulletLevel:Byte=1 //子弹等级=1
@@ -68,5 +69,20 @@ case class Breaker(
       curBulletNum = curBulletNum - 1
       Some(gunDirection,getLaunchBulletPosition(),getTankBulletDamage())
     }else None
+  }
+
+  def getPosition4Animation(offsetTime:Long) = {
+    this.position
+  }
+
+  def getGunPositions4Animation(): List[Point] = {
+    val gunWidth = config.breakGunWidth
+    val gunHeight = config.breakGunHeight * (1 + (this.bulletLevel - 1) * 0.1f)
+    List(
+      Point(0, -gunHeight / 2).rotate(this.gunDirection),
+      Point(0, gunHeight / 2).rotate(this.gunDirection),
+      Point(gunWidth, gunHeight / 2).rotate(this.gunDirection),
+      Point(gunWidth, -gunHeight / 2).rotate(this.gunDirection)
+    )
   }
 }

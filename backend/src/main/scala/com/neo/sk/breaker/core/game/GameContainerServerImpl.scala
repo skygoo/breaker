@@ -8,6 +8,7 @@ import com.neo.sk.breaker.protocol.ActorProtocol
 import com.neo.sk.breaker.shared.`object`._
 import com.neo.sk.breaker.shared.game.GameContainer
 import com.neo.sk.breaker.shared.game.config.{BreakGameConfig, BreakGameConfigImpl}
+import com.neo.sk.breaker.shared.model.Constants.ObstacleType
 import com.neo.sk.breaker.shared.model.{Constants, Point}
 import com.neo.sk.breaker.shared.protocol.BreakerEvent
 import com.neo.sk.breaker.shared.protocol.BreakerEvent.{UserJoinRoom, UserLeftRoom}
@@ -35,26 +36,27 @@ case class GameContainerServerImpl(
   private val obstacleIdGenerator = new AtomicInteger(100)
   private val random = new Random(System.currentTimeMillis())
 
+  //remind 用于生成新行
   private val positionList=mutable.HashMap[Int,List[Int]]()
   private var justJoinUser: List[(String, String,Int, ActorRef[UserActor.Command],ActorRef[BreakerEvent.WsMsgSource])] = Nil // tankIdOpt
 
 
   val xPosition=boundary.x/(config.totalColumn+4)
-  val yPosition=boundary.y/(config.totalRow+4)
+  val yPosition=boundary.y/(config.totalWallRow+4)
 
-  private def genObstaclePositionRandom(row:Int): List[Point] = {
+  private def genObstaclePositionRandom(row:Int): List[(Int,Point)] = {
     val value=mutable.HashSet[Int]()
-    for(i <- config.brickColumn to config.totalColumn){
+    for(i <- config.brickColumn until config.totalColumn){
       var n=random.nextInt(config.totalColumn)
       while (value.contains(n)){
         n=random.nextInt(config.totalColumn)
       }
       value.add(n)
     }
-    val pList=mutable.HashSet[Point]()
-    for(i <- 0 to config.totalColumn){
+    val pList=mutable.HashSet[(Int,Point)]()
+    for(i <- 0 until config.totalColumn){
       if(!value.contains(i)){
-        pList.add(Point(xPosition*(2+i),yPosition*(2+row)))
+        pList.add(row,Point(xPosition*(2+i)+config.obstacleWidth/2,yPosition*(2+row)+config.obstacleWidth/2))
       }
     }
     pList.toList
@@ -70,32 +72,66 @@ case class GameContainerServerImpl(
     Brick(config, oId, position, random.nextInt(config.propMaxBlood)+1)
   }
 
-  private def initObstacle(pList:mutable.HashSet[Point]) = {
+  private def generateWall(position:Point) = {
+    val oId = obstacleIdGenerator.getAndIncrement()
+    Wall(config, oId, position)
+  }
+
+  private def initObstacle(pList:mutable.HashSet[(Int,Point)]) = {
     (1 to config.propNum).foreach { _ =>
       val list=pList.toList
-      val position=list(random.nextInt(list.size))
-      val obstacle = generateAirDrop(position)
-      pList.remove(position)
+      val p=list(random.nextInt(list.size))
+      val obstacle = generateAirDrop(p._2)
+      pList.remove(p)
       val event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
       addGameEvent(event)
+      positionList.get(p._1) match {
+        case Some(value)=>
+          positionList.update(p._1,obstacle.oId::value)
+        case None=>
+          positionList.put(p._1,List(obstacle.oId))
+      }
       obstacleMap.put(obstacle.oId, obstacle)
       quadTree.insert(obstacle)
     }
     pList.foreach { p =>
-      val obstacle = generateBrick(p)
+      val obstacle = generateBrick(p._2)
       val event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
       addGameEvent(event)
+      positionList.get(p._1) match {
+        case Some(value)=>
+          positionList.update(p._1,obstacle.oId::value)
+        case None=>
+          positionList.put(p._1,List(obstacle.oId))
+      }
       obstacleMap.put(obstacle.oId, obstacle)
       quadTree.insert(obstacle)
     }
   }
 
+  private def initEnvironment()={
+    for(i <- 2 until config.totalWallRow+2){
+      var obstacle = generateWall(Point(config.obstacleWidth/2,yPosition*i+config.obstacleWidth/2))
+      var event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
+      addGameEvent(event)
+      environmentMap.put(obstacle.oId, obstacle)
+      quadTree.insert(obstacle)
+      obstacle = generateWall(Point(boundary.x-config.obstacleWidth/2,yPosition*i+config.obstacleWidth/2))
+      event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
+      addGameEvent(event)
+      environmentMap.put(obstacle.oId, obstacle)
+      quadTree.insert(obstacle)
+    }
+  }
+
   private def init()={
-    val pList=mutable.HashSet[Point]()
-    for(i <- upLine to downLine){
+    val pList=mutable.HashSet[(Int,Point)]()
+    for(i <- upLine until downLine){
       genObstaclePositionRandom(i).foreach(p=>pList.add(p))
     }
     initObstacle(pList)
+    initEnvironment()
+//    println(positionList)
   }
 
   /**初始化环境*/
@@ -125,9 +161,9 @@ case class GameContainerServerImpl(
 
   private def genABreaker(playerId:String,breakId:Int,nickName:String,up:Boolean)={
     val position=if(up){
-      Point(boundary.x.toInt/2,0)
+      Point(boundary.x.toInt/2,yPosition)
     }else{
-      Point(boundary.x.toInt/2,boundary.y)
+      Point(boundary.x.toInt/2,boundary.y-yPosition)
     }
     val event = BreakerEvent.UserJoinRoom(BreakState(playerId,breakId,nickName,position), systemFrame)
     dispatch(event)
@@ -162,6 +198,18 @@ case class GameContainerServerImpl(
   override protected def handleUserLeftRoom(e: UserLeftRoom): Unit = {
     super.handleUserLeftRoom(e)
     roomActorRef ! RoomActor.GameStopRoom
+  }
+
+  override protected def handleGenerateObstacle(e: BreakerEvent.GenerateObstacle): Unit = {
+    val obstacle = Obstacle(config, e.obstacleState)
+    val originObstacleOpt = if (e.obstacleState.t == ObstacleType.wall) environmentMap.put(obstacle.oId, obstacle)
+    else obstacleMap.put(obstacle.oId, obstacle)
+    if (originObstacleOpt.isEmpty) {
+      quadTree.insert(obstacle)
+    } else {
+      quadTree.remove(originObstacleOpt.get)
+      quadTree.insert(obstacle)
+    }
   }
 
   override def tankExecuteLaunchBulletAction(breaker: Breaker): Unit = {

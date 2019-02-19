@@ -12,7 +12,7 @@ trait BreakGameConfig {
 
   val esRecoverSupport: Boolean = true
 
-  val totalRow = 15
+  val totalWallRow = 15
 
   val brickRow = 7
 
@@ -49,4 +49,11 @@ trait BreakGameConfig {
   val brickMaxBlood: Byte
 
   val brickNum: Int
+
+  val breakRadius:Float
+
+  val breakGunWidth:Float
+
+  val breakGunHeight:Float
+
 }

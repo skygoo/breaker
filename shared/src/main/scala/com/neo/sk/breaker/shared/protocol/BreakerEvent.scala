@@ -13,7 +13,8 @@ object BreakerEvent {
                                           f:Long,
                                           breakers:List[BreakState],
                                           balls:List[BallState],
-                                          obstacle:List[ObstacleState]
+                                          obstacle:List[ObstacleState],
+                                          environment:List[ObstacleState],
                                         )
 
   final case class GameContainerState(
@@ -39,7 +40,7 @@ object BreakerEvent {
   case object DecodeError extends WsMsgServer
 
   case object WsSuccess extends WsMsgServer
-  final case class YourInfo(playerId:String, breakId:Int, name:String, config:BreakGameConfigImpl) extends WsMsgServer
+  final case class YourInfo(break:BreakState, config:BreakGameConfigImpl) extends WsMsgServer
 
   final case class UserJoinRoom(tankState:BreakState, override val frame: Long) extends  UserEvent with WsMsgServer
   final case class UserLeftRoom(playerId:String, name:String, breakId:Int, override val frame:Long) extends UserEvent with WsMsgServer

@@ -14,7 +14,7 @@ object Constants {
     final val left = math.Pi
   }
 
-  object TankColor{
+  object BreakColor{
     val blue = "#1E90FF"
     val green = "#4EEE94"
     val red = "#EE4000"
@@ -74,6 +74,6 @@ object Constants {
   }
 
 
-  final val WindowView = Point(192,108)
+  final val WindowView = Point(60,100)
 
 }

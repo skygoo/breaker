@@ -42,5 +42,6 @@ object Obstacle{
   def apply(config: BreakGameConfig, obstacleState: ObstacleState): Obstacle = obstacleState.t match {
     case ObstacleType.airDropBox => new PropBox(config,obstacleState)
     case ObstacleType.brick => new Brick(config,obstacleState)
+    case ObstacleType.wall => new Wall(config,obstacleState)
   }
 }

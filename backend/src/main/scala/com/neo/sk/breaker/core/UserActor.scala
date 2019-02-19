@@ -155,7 +155,7 @@ object UserActor {
           Behaviors.same
 
         case msg:ActorProtocol.JoinRoomSuccess=>
-          frontActor ! BreakerEvent.Wrap(BreakerEvent.YourInfo(msg.breaker.playerId,msg.breaker.breakId,msg.breaker.name,msg.config).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+          frontActor ! BreakerEvent.Wrap(BreakerEvent.YourInfo(msg.breaker.getBreakState(),msg.config).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
           switchBehavior(ctx,"play",play(userInfo,frontActor,msg.roomActor))
 
 

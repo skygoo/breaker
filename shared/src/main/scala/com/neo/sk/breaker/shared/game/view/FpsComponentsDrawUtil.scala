@@ -36,7 +36,7 @@ trait FpsComponentsDrawUtil{ this:GameContainerClientImpl =>
       ctx.setFill("rgb(0,0,0)")
       ctx.setTextAlign("left")
       val fpsString = s"fps : $lastRenderTimes,  ping : ${networkLatency}ms"
-      ctx.fillText(fpsString,0,(canvasBoundary.y - 2) * canvasUnit)
+      ctx.fillText(fpsString,2 * canvasUnit,2 * canvasUnit)
 //      ctx.setTextAlign("right")
 //      var i=18
 //      dataSizeList.foreach{ r=>

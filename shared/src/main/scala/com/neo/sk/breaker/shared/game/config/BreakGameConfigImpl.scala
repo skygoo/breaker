@@ -22,10 +22,11 @@ final case class BreakerMoveSpeed(
 }
 
 final case class BreakerParameters(
-                                    tankSpeed: BreakerMoveSpeed
-                                  ) {
-
-}
+//                                    breakSpeed: BreakerMoveSpeed,
+                                    breakRadius:Float,
+                                    breakGunWidth:Float,
+                                    breakGunHeight:Float
+                                  )
 
 final case class PropParameters(
                                     blood: Byte,
@@ -72,7 +73,8 @@ case class BreakGameConfigImpl(
                                 gridBoundary: GridBoundary,
                                 frameDuration: Long,
                                 ballParameters: BallParameters,
-                                obstacleParameters: ObstacleParameters
+                                obstacleParameters: ObstacleParameters,
+                                breakerParameters: BreakerParameters
                               ) extends BreakGameConfig {
   def getBreakGameConfigImpl(): BreakGameConfigImpl=this
 
@@ -103,4 +105,10 @@ case class BreakGameConfigImpl(
   val brickMaxBlood: Byte = obstacleParameters.brickParameters.blood
 
   val brickNum: Int = obstacleParameters.brickParameters.num
+
+  override val breakGunWidth: Float=breakerParameters.breakGunWidth
+
+  override val breakRadius: Float = breakerParameters.breakRadius
+
+  override val breakGunHeight: Float = breakerParameters.breakGunHeight
 }

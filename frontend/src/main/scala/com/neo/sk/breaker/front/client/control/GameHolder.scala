@@ -28,7 +28,7 @@ abstract class GameHolder(name: String) extends NetworkInfo {
   protected val ctx = canvas.getCtx
 
 
-  protected var canvasUnit = getCanvasUnit(canvasWidth)
+  protected var canvasUnit = getCanvasUnit(canvasHeight)
   protected var canvasBoundary = Point(canvasWidth, canvasHeight) / canvasUnit
 
   println(s"test111111111111=${canvasUnit},=${canvasWidth}")
@@ -128,7 +128,7 @@ abstract class GameHolder(name: String) extends NetworkInfo {
       println("the screen size is change")
       canvasWidth = newWidth
       canvasHeight = newHeight
-      canvasUnit = getCanvasUnit(canvasWidth)
+      canvasUnit = getCanvasUnit(canvasHeight)
       canvasBoundary = Point(canvasWidth, canvasHeight) / canvasUnit
       println(s"update screen=$canvasUnit,=${(canvasWidth, canvasHeight)}")
       canvas.setWidth(canvasWidth.toInt)
@@ -176,17 +176,17 @@ abstract class GameHolder(name: String) extends NetworkInfo {
   }
 
   protected def wsConnectError(e: Event) = {
-    JsFunc.alert("网络连接失败，请重新刷新")
+//    JsFunc.alert("网络连接失败，请重新刷新")
     e
   }
 
   protected def wsConnectClose(e: Event) = {
-    JsFunc.alert("网络连接失败，请重新刷新")
+//    JsFunc.alert("网络连接失败，请重新刷新")
     e
   }
 
   protected def wsMessageHandler(data: BreakerEvent.WsMsgServer)
 
 
-  protected def getCanvasUnit(canvasWidth: Float): Int = /*(canvasWidth / Constants.WindowView.x).toInt*/ 3
+  protected def getCanvasUnit(canvasHeight: Float): Float = (canvasHeight / Constants.WindowView.y)
 }

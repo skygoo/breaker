@@ -1,6 +1,6 @@
 package com.neo.sk.breaker.shared.game
 
-import com.neo.sk.breaker.shared.`object`.{Ball, BreakState, Breaker, Obstacle}
+import com.neo.sk.breaker.shared.`object`._
 import com.neo.sk.breaker.shared.game.config.BreakGameConfig
 import com.neo.sk.breaker.shared.model.Constants.ObstacleType
 import com.neo.sk.breaker.shared.model.{Point, Rectangle}
@@ -31,12 +31,13 @@ trait GameContainer {
   val boundary : Point = config.boundary
 
   var systemFrame:Long = 0L //系统帧数
-  protected var upLine=(config.totalRow-config.brickRow)/2+1
-  protected var downLine=(config.totalRow+config.brickRow)/2
+  protected var upLine=(config.totalWallRow-config.brickRow)/2
+  protected var downLine=(config.totalWallRow+config.brickRow)/2
 
   val breakMap = mutable.HashMap[Int,Breaker]()
   val ballMap = mutable.HashMap[Int,Ball]() //bulletId -> Bullet
   val obstacleMap = mutable.HashMap[Int,Obstacle]() //obstacleId -> Obstacle  可打击的砖头
+  val environmentMap = mutable.HashMap[Int,Obstacle]() //obstacleId -> steel and river  不可打击
   val quadTree : QuadTree = new QuadTree(Rectangle(Point(0,0),boundary))
 
   protected val gameEventMap = mutable.HashMap[Long,List[GameEvent]]() //frame -> List[GameEvent] 待处理的事件 frame >= curFrame
@@ -236,7 +237,8 @@ trait GameContainer {
       systemFrame,
       breakMap.values.map(_.getBreakState()).toList,
       ballMap.values.map(_.getBulletState()).toList,
-      obstacleMap.values.map(_.getObstacleState()).toList
+      obstacleMap.values.map(_.getObstacleState()).toList,
+      environmentMap.values.map(_.getObstacleState()).toList
     )
   }
 

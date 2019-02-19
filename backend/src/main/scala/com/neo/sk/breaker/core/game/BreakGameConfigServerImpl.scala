@@ -21,7 +21,7 @@ case class BreakGameConfigServerImpl(config: Config){
   import Helpers.ConfigOps
 
   private[this] val gridBoundaryWidth = config.getInt("breakerGame.gridBoundary.width")
-    .requiring(_ > 100,"minimum supported grid boundary width is 100")
+    .requiring(_ > 10,"minimum supported grid boundary width is 100")
   private[this] val gridBoundaryHeight = config.getInt("breakerGame.gridBoundary.height")
     .requiring(_ > 50,"minimum supported grid boundary height is 50")
   private[this] val gridBoundary = GridBoundary(gridBoundaryWidth,gridBoundaryHeight)
@@ -60,6 +60,15 @@ case class BreakGameConfigServerImpl(config: Config){
     brickParameters = BrickParameters(brickBloodData,brickNumData)
   )
 
-  val gameConfig = BreakGameConfigImpl(gridBoundary,gameFameDuration,ballParameters,obstacleParameters)
+  private[this] val breakRadiusData = config.getDouble("breakerGame.break.radius")
+    .requiring(_ > 0,"minimum supported break radius is 1").toFloat
+  private[this] val breakGunWidthData = config.getInt("breakerGame.break.gunWidth")
+    .requiring(_ > 0,"minimum supported break gun width is 1")
+  private[this] val breakGunHeightData = config.getInt("breakerGame.break.gunHeight")
+    .requiring(_ > 0,"minimum supported break gun height is 1")
+
+  private val breakParameters = BreakerParameters(breakRadiusData,breakGunWidthData,breakGunHeightData)
+
+  val gameConfig = BreakGameConfigImpl(gridBoundary,gameFameDuration,ballParameters,obstacleParameters,breakParameters)
 
 }

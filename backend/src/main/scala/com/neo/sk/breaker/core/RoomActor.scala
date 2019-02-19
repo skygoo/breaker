@@ -110,6 +110,9 @@ object RoomActor {
 
         case GameLoop =>
           gameContainer.update()
+          if(gameContainer.systemFrame%20==0){
+            dispatch(subscribersMap)(BreakerEvent.SyncGameState(gameContainer.getGameContainerState()))
+          }
           Behaviors.same
 
         case WebSocketMsg(req) =>
