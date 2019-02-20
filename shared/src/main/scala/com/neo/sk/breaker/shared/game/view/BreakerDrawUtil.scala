@@ -55,8 +55,8 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
       ctx.stroke()
       ctx.closePath()
       ctx.setGlobalAlpha(1)
-     val tankColor = if(breaker.up) blueTank else redTank
-      ctx.drawImage(tankColor, (p.x-breaker.getWidth / 2) * canvasUnit, (p.y-breaker.getHeight / 2) * canvasUnit,
+     val breakImg = if(breaker.up) blueTank else redTank
+      ctx.drawImage(breakImg, (p.x-breaker.getWidth / 2) * canvasUnit, (p.y-breaker.getHeight / 2) * canvasUnit,
         Some(breaker.getWidth * canvasUnit, breaker.getHeight * canvasUnit))
 
 

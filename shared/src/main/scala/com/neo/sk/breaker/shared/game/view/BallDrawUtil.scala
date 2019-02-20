@@ -11,8 +11,8 @@ import scala.collection.mutable
   */
 trait BallDrawUtil { this:GameContainerClientImpl =>
 
-  private val ball1 =drawFrame.createImage("/img/ball1.png")
-  private val ball2 =drawFrame.createImage("/img/ball2.png")
+  private val ball1 =drawFrame.createImage("/img/ballRed.png")
+  private val ball2 =drawFrame.createImage("/img/ballBlue.png")
 
   private def generateCanvas(bullet:Ball) = {
     bullet.getBulletLevel() match {

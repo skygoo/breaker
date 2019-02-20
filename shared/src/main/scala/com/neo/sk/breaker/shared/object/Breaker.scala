@@ -24,8 +24,8 @@ case class Breaker(
   def this(config: BreakGameConfig,state:BreakState){
     this(config,state.playerId,state.breakId,state.name,state.position)
   }
-  override protected val height: Float = config.breakWidth
-  override protected val width: Float = config.breakHeight
+  override protected val height: Float = config.breakHeight
+  override protected val width: Float = config.breakWidth
   override protected val collisionOffset: Float = config.obstacleWO
 
   val up = if(position.y>config.boundary.y/2) false else true
