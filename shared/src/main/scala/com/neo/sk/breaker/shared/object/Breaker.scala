@@ -24,8 +24,8 @@ case class Breaker(
   def this(config: BreakGameConfig,state:BreakState){
     this(config,state.playerId,state.breakId,state.name,state.position)
   }
-  override protected val height: Float = config.obstacleWidth
-  override protected val width: Float = config.obstacleWidth
+  override protected val height: Float = config.breakWidth
+  override protected val width: Float = config.breakHeight
   override protected val collisionOffset: Float = config.obstacleWO
 
   val up = if(position.y>config.boundary.y/2) false else true
@@ -54,7 +54,7 @@ case class Breaker(
 
   // 获取发射子弹位置
   private def getLaunchBulletPosition():Point = {
-    position + Point(0,0).rotate(gunDirection)
+    position + Point(config.breakGunWidth,0).rotate(gunDirection)
   }
 
   private def getTankBulletDamage():Int = {

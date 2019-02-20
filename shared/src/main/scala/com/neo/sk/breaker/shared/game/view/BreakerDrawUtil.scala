@@ -14,6 +14,9 @@ import com.neo.sk.breaker.shared.model.Constants.BreakColor
 trait BreakerDrawUtil {this:GameContainerClientImpl =>
   private val myTankInfoCacheMap = mutable.HashMap[(Byte,Byte,Byte), Any]()
 
+  private val blueTank =drawFrame.createImage("/img/blueTank.png")
+  private val redTank =drawFrame.createImage("/img/redTank.png")
+
   def updateBreakSize()={
     myTankInfoCacheMap.clear()
   }
@@ -43,16 +46,18 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
       if(breaker.getBulletSize()>0) ctx.setStrokeStyle("#4EEE94") else ctx.setStrokeStyle("#636363")
       val centerX = p.x * canvasUnit
       val centerY = p.y * canvasUnit
-      val radius =  config.breakRadius * canvasUnit
+      val radius =  (config.breakWidth / 2) * canvasUnit
       val startAngle = 0
       val lengthAngle = 360
       ctx.arc(centerX.toFloat, centerY.toFloat, radius, startAngle.toFloat, lengthAngle.toFloat)
-      val tankColor = if(breaker.up) BreakColor.blue else BreakColor.red
-      ctx.setFill(tankColor)
+      ctx.setFill(if(breaker.getBulletSize()>0) "#4EEE94" else "#636363")
       ctx.fill()
       ctx.stroke()
       ctx.closePath()
       ctx.setGlobalAlpha(1)
+     val tankColor = if(breaker.up) blueTank else redTank
+      ctx.drawImage(tankColor, (p.x-breaker.getWidth / 2) * canvasUnit, (p.y-breaker.getHeight / 2) * canvasUnit,
+        Some(breaker.getWidth * canvasUnit, breaker.getHeight * canvasUnit))
 
 
       ctx.beginPath()

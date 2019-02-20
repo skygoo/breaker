@@ -60,8 +60,10 @@ case class BreakGameConfigServerImpl(config: Config){
     brickParameters = BrickParameters(brickBloodData,brickNumData)
   )
 
-  private[this] val breakRadiusData = config.getDouble("breakerGame.break.radius")
-    .requiring(_ > 0,"minimum supported break radius is 1").toFloat
+  private[this] val breakWidthData = config.getDouble("breakerGame.break.width")
+    .requiring(_ > 0,"minimum supported break width is 1").toFloat
+  private[this] val breakHeightData = config.getDouble("breakerGame.break.height")
+    .requiring(_ > 0,"minimum supported break width is 1").toFloat
   private[this] val breakGunWidthData = config.getInt("breakerGame.break.gunWidth")
     .requiring(_ > 0,"minimum supported break gun width is 1")
   private[this] val breakGunHeightData = config.getInt("breakerGame.break.gunHeight")
@@ -69,7 +71,7 @@ case class BreakGameConfigServerImpl(config: Config){
   private[this] val breakFillBulletFrame = config.getInt("breakerGame.break.fillBulletFrame")
     .requiring(_ > 0,"minimum supported break fillBulletFrame is 1")
 
-  private val breakParameters = BreakerParameters(breakRadiusData,breakGunWidthData,breakGunHeightData,breakFillBulletFrame)
+  private val breakParameters = BreakerParameters(breakWidthData,breakHeightData,breakGunWidthData,breakGunHeightData,breakFillBulletFrame)
 
   val gameConfig = BreakGameConfigImpl(gridBoundary,gameFameDuration,ballParameters,obstacleParameters,breakParameters)
 

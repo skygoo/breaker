@@ -23,7 +23,8 @@ final case class BreakerMoveSpeed(
 
 final case class BreakerParameters(
                                     //                                    breakSpeed: BreakerMoveSpeed,
-                                    breakRadius: Float,
+                                    breakWidth: Float,
+                                    breakHeight: Float,
                                     breakGunWidth: Float,
                                     breakGunHeight: Float,
                                     fillBulletFrame: Int
@@ -109,7 +110,9 @@ case class BreakGameConfigImpl(
 
   override val breakGunWidth: Float = breakerParameters.breakGunWidth
 
-  override val breakRadius: Float = breakerParameters.breakRadius
+  override val breakWidth: Float = breakerParameters.breakWidth
+
+  override val breakHeight: Float = breakerParameters.breakHeight
 
   override val breakGunHeight: Float = breakerParameters.breakGunHeight
 

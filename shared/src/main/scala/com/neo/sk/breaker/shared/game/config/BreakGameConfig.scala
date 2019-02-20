@@ -52,7 +52,9 @@ trait BreakGameConfig {
 
   val brickNum: Int
 
-  val breakRadius:Float
+  val breakWidth:Float
+
+  val breakHeight:Float
 
   val breakGunWidth:Float
 

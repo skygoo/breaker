@@ -11,25 +11,15 @@ import scala.collection.mutable
   */
 trait BallDrawUtil { this:GameContainerClientImpl =>
 
-  private def generateCanvas(bullet:Ball) = {
-    val radius = bullet.getRadius
-    val canvasCache = drawFrame.createCanvas(math.ceil(radius * canvasUnit * 2 + radius * canvasUnit / 5).toInt,math.ceil(radius * canvasUnit * 2 + radius * canvasUnit / 5).toInt)
-    val ctxCache = canvasCache.getCtx
+  private val ball1 =drawFrame.createImage("/img/ball1.png")
+  private val ball2 =drawFrame.createImage("/img/ball2.png")
 
-    val color = bullet.getBulletLevel() match {
-      case 1 => "#CD6600"
-      case 2 => "#FF4500"
-      case 3 => "#8B2323"
+  private def generateCanvas(bullet:Ball) = {
+    bullet.getBulletLevel() match {
+      case 1 => ball1
+      case 2 => ball2
+      case _ => ball2
     }
-    ctxCache.setFill(color)
-    ctxCache.beginPath()
-    ctxCache.arc(radius * canvasUnit + radius * canvasUnit / 10,radius * canvasUnit + radius * canvasUnit / 10, radius * canvasUnit,0, 360)
-    ctxCache.fill()
-    ctxCache.setStrokeStyle("#474747")
-    ctxCache.setLineWidth(radius * canvasUnit / 5)
-    ctxCache.stroke()
-    ctx.closePath()
-    canvasCache.change2Image()
   }
 
   private val canvasCacheMap = mutable.HashMap[Byte,Any]()
@@ -47,7 +37,7 @@ trait BallDrawUtil { this:GameContainerClientImpl =>
       }
       val cacheCanvas = canvasCacheMap.getOrElseUpdate(bullet.getBulletLevel(), generateCanvas(bullet))
       val radius = bullet.getRadius
-      ctx.drawImage(cacheCanvas, (p.x - bullet.getRadius) * canvasUnit - radius * canvasUnit / 2.5, (p.y - bullet.getRadius) * canvasUnit - radius * canvasUnit / 2.5)
+      ctx.drawImage(cacheCanvas, (p.x - bullet.getRadius) * canvasUnit, (p.y - bullet.getRadius) * canvasUnit,Some(radius*2 * canvasUnit, radius*2 * canvasUnit))
     }
   }
 }
