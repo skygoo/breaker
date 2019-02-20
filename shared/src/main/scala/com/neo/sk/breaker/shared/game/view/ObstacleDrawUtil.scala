@@ -19,7 +19,7 @@ trait ObstacleDrawUtil{ this:GameContainerClientImpl =>
   private val obstacleCanvasCacheMap = mutable.HashMap[(Byte, Boolean), Any]()
 
   private val steelImg =drawFrame.createImage("/img/瓷砖2.png")
-//  private val brickImg =drawFrame.createImage("/img/wall.png")
+  private val brickImg =drawFrame.createImage("/img/瓷砖.png")
   private val addBallImg =drawFrame.createImage("/img/加号2.png")
   private val delBallImg =drawFrame.createImage("/img/减号2.png")
 
@@ -80,10 +80,10 @@ trait ObstacleDrawUtil{ this:GameContainerClientImpl =>
         obstacle.propType.foreach(o =>ctx.drawImage(getPropImg(o), p.x * canvasUnit, p.y * canvasUnit,
           Some(obstacle.getWidth * canvasUnit, obstacle.getHeight * canvasUnit)))
       }else{
-        val cache = obstacleCanvasCacheMap.getOrElseUpdate((obstacle.obstacleType, false), generateObstacleCacheCanvas(obstacle.getWidth, obstacle.getHeight, color))
-        ctx.drawImage(cache, p.x * canvasUnit, p.y * canvasUnit)
-//        ctx.drawImage(wallImg, p.x * canvasUnit, p.y * canvasUnit,
-//          Some(obstacle.getWidth * canvasUnit, obstacle.getHeight * canvasUnit))
+//        val cache = obstacleCanvasCacheMap.getOrElseUpdate((obstacle.obstacleType, false), generateObstacleCacheCanvas(obstacle.getWidth, obstacle.getHeight, color))
+//        ctx.drawImage(cache, p.x * canvasUnit, p.y * canvasUnit)
+        ctx.drawImage(brickImg, p.x * canvasUnit, p.y * canvasUnit,
+          Some(obstacle.getWidth * canvasUnit, obstacle.getHeight * canvasUnit))
       }
       if(isAttacked){
         ctx.setGlobalAlpha(1)
