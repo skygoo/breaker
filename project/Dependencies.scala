@@ -73,6 +73,7 @@ object Dependencies {
 //  val scalaPB = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
 //  val scalaFx = "org.scalafx" %% "scalafx" % "10.0.2-R15"
   val asynchttpclientspecial = "org.asynchttpclient" % "async-http-client" % "2.5.2"
+  val h2Database = "com.h2database" % "h2" % "1.4.197"
 
 
   val backendDependencies =
@@ -96,7 +97,8 @@ object Dependencies {
       Dependencies.asynchttpclient,
       Dependencies.ehcache,
       Dependencies.essf,
-      Dependencies.byteobject
+      Dependencies.byteobject,
+      Dependencies.h2Database
     )
 
 

@@ -13,4 +13,14 @@ object UserProtocol {
                        userName: Option[String]=None, //注册时的用户名
                      )
 
+  case class UserLoginReq(
+                           userId:String,
+                           password:String
+                      )
+
+  case class UserSignReq(
+                          userId:String,
+                          mail:String,
+                          password:String
+                         )
 }

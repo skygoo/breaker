@@ -3,11 +3,11 @@ package com.neo.sk.breaker.shared.model
 import scala.util.Random
 
 /**
-  * Created by hongruying on 2018/8/28
+  * Created by sky
+  * Date on 2019/2/14
+  * Time at 下午6:26
   */
 object Constants {
-
-  val drawHistory = false
 
   object DirectionType {
     final val right:Float = 0
@@ -21,17 +21,6 @@ object Constants {
     val tankColorList = List(blue,green,red)
     val gun = "#7A7A7A"
     def getRandomColorType(random:Random):Byte = random.nextInt(tankColorList.size).toByte
-
-  }
-
-  object InvincibleSize{
-    val r = 5.5
-  }
-
-  object SmallBullet{
-    val num = 4
-    val height = 5
-    val width = 1
   }
 
   object PropType{
@@ -49,15 +38,7 @@ object Constants {
   object GameAnimation{
     val bulletHitAnimationFrame = 8
     val tankDestroyAnimationFrame = 12
-  }
-
-  object PropAnimation{
-    val DisAniFrame1 = 30
-    val DisplayF1 = 6
-    val DisappearF1 = 2
-    val DisAniFrame2 = 10
-    val DisplayF2 = 1
-    val DisappearF2 = 1
+    val talkAnimationFrame = 20
   }
 
 
@@ -81,6 +62,11 @@ object Constants {
     val e4:Byte=4
     val e5:Byte=5
     val list=List((e1,"哭"),(e2,"笑"),(e3,"生气"),(e4,"难受"),(e5,"高兴"))
+  }
+
+  object RoomType{
+    val cooperation:Byte=1
+    val confrontation:Byte=2
   }
 
 

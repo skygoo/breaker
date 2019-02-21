@@ -1,8 +1,10 @@
 package com.neo.sk.breaker.front.pages
 
 import com.neo.sk.breaker.front.common.{Page, PageSwitcher}
+import com.neo.sk.breaker.front.components.ConfirmModel
 import mhtml.{Cancelable, Rx, Var, mount}
 import org.scalajs.dom
+
 import scala.xml.Elem
 
 /**
@@ -32,10 +34,19 @@ object MainPage extends PageSwitcher {
   }
 
 
+  //询问框
+  val confirmVar = Var(<div></div>)
+
+  def createConfirm(s: String, commitCallBack: => Unit = {}, f:Boolean = false) = {
+    val alertModel=new ConfirmModel(s,commitCallBack,f)
+    confirmVar:= <div>{alertModel.QRCodeBox}</div>
+    alertModel.showQRCode:=true
+  }
   def show(): Cancelable = {
     switchPageByHash()
     val page =
       <div style="width:100%;height:100%;">
+        {confirmVar}
         {currentPage}
       </div>
     mount(dom.document.body, page)

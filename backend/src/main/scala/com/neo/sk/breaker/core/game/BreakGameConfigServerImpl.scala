@@ -5,7 +5,6 @@ import com.neo.sk.breaker.shared.model.Point
 import com.typesafe.config.Config
 import akka.util.Helpers
 import com.neo.sk.breaker.shared.game.config
-import com.neo.sk.breaker.shared.model.Constants.PropAnimation
 
 import scala.concurrent.duration._
 import com.neo.sk.breaker.shared.game.config._

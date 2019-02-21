@@ -23,6 +23,7 @@ object CommonErrorCode{
   def operationTimeOut =ErrorRsp(msg= "operation time out.",errCode = 1000107)
 
   def appIdInvalid =ErrorRsp(msg="appId invalid.",errCode=1000108)
+
   def notAdmin = ErrorRsp(1000205,"you are not admin")
 
   def requestIllegal(body:String = "") = ErrorRsp(msg=s"receive illegal request body;$body.",errCode = 1000109)

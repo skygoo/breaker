@@ -136,8 +136,6 @@ case class GameContainerServerImpl(
       val p=list(random.nextInt(list.size))
       val obstacle = generateAirDrop(p._2)
       pList.remove(p)
-//      val event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
-//      addGameEvent(event)
       positionList.get(p._1) match {
         case Some(value)=>
           positionList.update(p._1,(obstacle.oId,obstacle.obstacleType)::value)
@@ -165,13 +163,9 @@ case class GameContainerServerImpl(
   private def initEnvironment()={
     for(i <- 2 until config.totalWallRow+2){
       var obstacle = generateWall(Point(config.obstacleWidth/2,yPosition*i+config.obstacleWidth/2))
-//      var event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
-//      addGameEvent(event)
       environmentMap.put(obstacle.oId, obstacle)
       quadTree.insert(obstacle)
       obstacle = generateWall(Point(boundary.x-config.obstacleWidth/2,yPosition*i+config.obstacleWidth/2))
-//      event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
-//      addGameEvent(event)
       environmentMap.put(obstacle.oId, obstacle)
       quadTree.insert(obstacle)
     }

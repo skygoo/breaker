@@ -1,11 +1,10 @@
 package com.neo.sk.breaker.shared.game.view
 
-import com.neo.sk.breaker.shared.`object`.Breaker
 import com.neo.sk.breaker.shared.game.GameContainerClientImpl
 import com.neo.sk.breaker.shared.model.Point
 
 import scala.collection.mutable
-import com.neo.sk.breaker.shared.model.Constants.{BreakColor,ExpressionMap}
+import com.neo.sk.breaker.shared.model.Constants.{BreakColor, ExpressionMap, GameAnimation}
 /**
   * Created by sky
   * Date on 2019/2/18
@@ -66,18 +65,20 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
         Some(breaker.getWidth * canvasUnit, breaker.getHeight * canvasUnit))
 
       breaker.getExpression.foreach{e=>
-        if(e._1>systemFrame-20){
+        if(e._1>systemFrame-GameAnimation.talkAnimationFrame){
           val pos=Point((p.x+breaker.getWidth / 2) * canvasUnit, (p.y-breaker.getHeight) * canvasUnit)
           ctx.drawImage(talkImg, pos.x,pos.y,
             Some(breaker.getWidth*5 * canvasUnit, breaker.getHeight*2 * canvasUnit))
 
           e._2 match {
             case ExpressionMap.e0=>
+              ctx.beginPath()
               ctx.setFill("#006699")
-              ctx.setTextAlign("center")
+              ctx.setTextAlign("left")
               ctx.setFont("楷体", "normal", 3 * canvasUnit)
               ctx.setLineWidth(2)
-              ctx.fillText(s"${e._3.getOrElse("")}", pos.x+ (breaker.getWidth/2+5) *canvasUnit, (p.y+2-breaker.getHeight / 2) * canvasUnit, 20 * canvasUnit)
+              ctx.fillText(s"${e._3.getOrElse("")}", pos.x+ (breaker.getWidth/2) *canvasUnit, (p.y+2-breaker.getHeight / 2) * canvasUnit, breaker.getWidth*5 * canvasUnit)
+              ctx.closePath()
             case _=>
               ctx.drawImage(expressionInfoCacheMap.getOrElseUpdate(e._2,generateExpCacheCanvas(e._2)), pos.x+2*canvasUnit, (p.y-breaker.getHeight / 2) * canvasUnit,
                 Some(breaker.getWidth * canvasUnit, breaker.getHeight * canvasUnit))
@@ -86,7 +87,7 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
       }
 
       ctx.beginPath()
-      val namePosition = (p + Point(0, 5)) * canvasUnit
+      val namePosition = (p + Point(0, 2)) * canvasUnit
       ctx.setFill("#006699")
       ctx.setTextAlign("center")
       ctx.setFont("楷体", "normal", 2 * canvasUnit)

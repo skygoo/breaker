@@ -29,7 +29,8 @@ import scala.util.Random
   */
 trait HttpService
   extends ResourceService
-    with ServiceUtils{
+    with ServiceUtils
+    with UserService{
 
   import akka.actor.typed.scaladsl.AskPattern._
   import com.neo.sk.utils.CirceSupport._
@@ -67,7 +68,7 @@ trait HttpService
             )
           }
         }
-      }
+      } ~ userRoutes
   }
 
 

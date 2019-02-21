@@ -14,18 +14,20 @@ object Routes {
 
   val getRoomListRoute = base + "/getRoomIdList"
 
-  def getImgUrl(imgName:String) = base + s"/static/img/$imgName"
+  def getImgUrl(imgName: String) = base + s"/static/img/$imgName"
 
   def wsJoinGameUrl(name: String, userId: Option[String], playerId: Option[String]): String = {
-    base + s"/game/join?name=$name"+{userId match {
-      case Some(v)=>
-        s"&userId=$v"
-      case None=> ""
-    }}+{
+    base + s"/game/join?name=$name" + {
+      userId match {
+        case Some(v) =>
+          s"&userId=$v"
+        case None => ""
+      }
+    } + {
       playerId match {
-        case Some(v)=>
+        case Some(v) =>
           s"&playerId=$v"
-        case None=> ""
+        case None => ""
       }
     }
   }
@@ -33,6 +35,15 @@ object Routes {
   def getJoinGameWebSocketUri(playerInfo: UserInfo): String = {
     val wsProtocol = if (dom.document.location.protocol == "https:") "wss" else "ws"
     s"$wsProtocol://${dom.document.location.host}${Routes.wsJoinGameUrl(playerInfo.nickName, playerInfo.userName, playerInfo.playerId)}"
+  }
+
+  object User {
+    val userBase = base + "/user"
+
+    val sign = userBase + "/sign"
+
+    val login = userBase + "/login"
+
   }
 
 
