@@ -46,6 +46,24 @@ case class GameContainerServerImpl(
   val xPosition=boundary.x/(config.totalColumn+4)
   val yPosition=boundary.y/(config.totalWallRow+4)
 
+  protected def handleUserJoinRoomEvent(e:UserJoinRoom) :Unit = {
+    //    println(s"-------------------处理用户加入房间事件")
+    val breaker : BreakState = e.tankState
+    breakMap.put(e.tankState.breakId,breaker)
+    quadTree.insert(breaker)
+  }
+
+  final protected def handleUserJoinRoomEvent(l:List[UserJoinRoom]) :Unit = {
+    l foreach handleUserJoinRoomEvent
+  }
+
+  //fixme 前后端不同的执行
+  protected def handleUserJoinRoomEventNow() = {
+    gameEventMap.get(systemFrame).foreach{ events =>
+      handleUserJoinRoomEvent(events.filter(_.isInstanceOf[UserJoinRoom]).map(_.asInstanceOf[UserJoinRoom]).reverse)
+    }
+  }
+
   private def genObstaclePositionRandom(row:Int): List[(Int,Point)] = {
     val value=mutable.HashSet[Int]()
     for(i <- config.brickColumn until config.totalColumn){
@@ -176,7 +194,6 @@ case class GameContainerServerImpl(
   }
 
   def receiveUserAction(preExecuteUserAction: BreakerEvent.UserActionEvent): Unit = {
-    //    println(s"receive user action preExecuteUserAction frame=${preExecuteUserAction.frame}----system fram=${systemFrame}")
     val f = math.max(preExecuteUserAction.frame, systemFrame)
     if (preExecuteUserAction.frame != f) {
       log.debug(s"preExecuteUserAction frame=${preExecuteUserAction.frame}, systemFrame=${systemFrame}")
@@ -186,10 +203,13 @@ case class GameContainerServerImpl(
       * 新增按键操作，补充血量，
       **/
     val action = preExecuteUserAction match {
-      case a: BreakerEvent.UserMouseClick => a.copy(frame = f)
+      case a: BreakerEvent.UserMouseClick =>
+        addUserAction(a.copy(frame = f))
+        a.copy(frame = f)
+      case a: BreakerEvent.Expression =>
+        a.copy(frame = f)
     }
 
-    addUserAction(action)
     dispatch(action)
   }
 

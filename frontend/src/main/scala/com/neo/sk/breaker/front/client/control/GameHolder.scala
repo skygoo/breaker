@@ -21,7 +21,7 @@ import org.scalajs.dom.raw.{Event, VisibilityState}
   */
 abstract class GameHolder(name: String) extends NetworkInfo {
   val drawFrame = new MiddleFrameInJs
-  protected var canvasWidth = dom.window.innerWidth.toFloat
+  protected var canvasWidth = (dom.window.innerWidth*0.8).toInt.toFloat
   protected var canvasHeight = dom.window.innerHeight.toFloat
 
   protected val canvas = drawFrame.createCanvas(name, canvasWidth, canvasHeight)
@@ -121,7 +121,7 @@ abstract class GameHolder(name: String) extends NetworkInfo {
   }
 
   protected def checkScreenSize = {
-    val newWidth = dom.window.innerWidth.toFloat
+    val newWidth = (dom.window.innerWidth*0.8).toInt.toFloat
     val newHeight = dom.window.innerHeight.toFloat
     if (newWidth != canvasWidth || newHeight != canvasHeight) {
       println("the screen size is change")

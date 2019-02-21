@@ -26,7 +26,6 @@ object MainPage extends PageSwitcher {
   private val currentPage: Rx[Elem] = currentPageHash.map {
     case Nil => LoginPage.render
     case "play" :: Nil => {
-      println("play")
       new PlayPage(LoginPage.playerInfo).render
     }
     case _ => <div>Error Page</div>

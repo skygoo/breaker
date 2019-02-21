@@ -51,6 +51,7 @@ object UserManager {
     Behaviors.receive[Command] { (ctx, msg) =>
       msg match {
         case GetWebSocketFlow(replyTo, playerInfo) =>
+          println(msg)
           //remind 确保playerId
           playerInfo.playerId match {
             case Some(value)=>

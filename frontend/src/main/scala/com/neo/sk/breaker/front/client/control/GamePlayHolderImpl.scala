@@ -23,7 +23,7 @@ import scala.xml.Elem
   * Date: 2018/10/29
   * Time: 13:00
   */
-class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extends GameHolder(name) {
+case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extends GameHolder(name) {
   private[this] val actionSerialNumGenerator = new AtomicInteger(0)
  private var lastMouseMoveAngle: Byte = 0
   private val perMouseMoveFrame = 3
@@ -65,6 +65,12 @@ class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extend
     setGameState(GameState.loadingPlay)
     webSocketClient.setup(Routes.getJoinGameWebSocketUri(playerInfo))
     gameLoop()
+  }
+
+  def sendExpression(et:Byte,s:Option[String])={
+    val event=BreakerEvent.Expression(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, et,s, getActionSerialNum)
+    gameContainerOpt.get.preExecuteUserEvent(event)
+    sendMsg2Server(event)
   }
 
   private def addUserActionListenEvent(up:Boolean,breakPosition:Point): Unit = {

@@ -16,22 +16,23 @@ object Routes {
 
   def getImgUrl(imgName:String) = base + s"/static/img/${imgName}"
 
-  def wsJoinGameUrl(name: String) = {
-    base + s"/game/join?name=$name"
-  }
-
-  def wsJoinGameUrl(name: String, userId: String, playerId: String): String = {
-    base + s"/game/join?name=$name&userId=$userId&playerId=$playerId"
+  def wsJoinGameUrl(name: String, userId: Option[String], playerId: Option[String]): String = {
+    base + s"/game/join?name=$name"+{userId match {
+      case Some(v)=>
+        s"&userId=$v"
+      case None=> ""
+    }}+{
+      playerId match {
+        case Some(v)=>
+          s"&playerId=$v"
+        case None=> ""
+      }
+    }
   }
 
   def getJoinGameWebSocketUri(playerInfo: UserInfo): String = {
     val wsProtocol = if (dom.document.location.protocol == "https:") "wss" else "ws"
-    playerInfo.playerId match {
-      case Some(p) =>
-        s"$wsProtocol://${dom.document.location.host}${Routes.wsJoinGameUrl(playerInfo.nickName, playerInfo.userName.getOrElse(""), playerInfo.playerId.getOrElse(""))}"
-      case None =>
-        s"$wsProtocol://${dom.document.location.host}${Routes.wsJoinGameUrl(playerInfo.nickName)}"
-    }
+    s"$wsProtocol://${dom.document.location.host}${Routes.wsJoinGameUrl(playerInfo.nickName, playerInfo.userName, playerInfo.playerId)}"
   }
 
 

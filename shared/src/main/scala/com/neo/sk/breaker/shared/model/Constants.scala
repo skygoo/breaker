@@ -73,6 +73,16 @@ object Constants {
     val leave = 6
   }
 
+  object ExpressionMap{
+    val e0:Byte=0
+    val e1:Byte=1
+    val e2:Byte=2
+    val e3:Byte=3
+    val e4:Byte=4
+    val e5:Byte=5
+    val list=List((e1,"哭"),(e2,"笑"),(e3,"生气"),(e4,"难受"),(e5,"高兴"))
+  }
+
 
   final val WindowView = Point(60,100)
 

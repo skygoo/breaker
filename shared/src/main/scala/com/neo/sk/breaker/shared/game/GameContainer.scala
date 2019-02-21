@@ -57,25 +57,8 @@ trait GameContainer {
     }
   }
 
-  private implicit def state2Breaker(breaker:BreakState):Breaker={
+  implicit def state2Breaker(breaker:BreakState):Breaker={
     Breaker(config,breaker.playerId,breaker.breakId,breaker.name,breaker.position)
-  }
-  protected def handleUserJoinRoomEvent(e:UserJoinRoom) :Unit = {
-    //    println(s"-------------------处理用户加入房间事件")
-    val breaker : BreakState = e.tankState
-    breakMap.put(e.tankState.breakId,breaker)
-    quadTree.insert(breaker)
-  }
-
-  final protected def handleUserJoinRoomEvent(l:List[UserJoinRoom]) :Unit = {
-    l foreach handleUserJoinRoomEvent
-  }
-
-  //fixme 前后端不同的执行
-  protected def handleUserJoinRoomEventNow() = {
-    gameEventMap.get(systemFrame).foreach{ events =>
-      handleUserJoinRoomEvent(events.filter(_.isInstanceOf[UserJoinRoom]).map(_.asInstanceOf[UserJoinRoom]).reverse)
-    }
   }
 
   protected def handleUserLeftRoom(e:UserLeftRoom) :Unit = {
@@ -164,6 +147,9 @@ trait GameContainer {
               //remind 调整鼠标方向
               breaker.setTankGunDirection(a.d)
               tankExecuteLaunchBulletAction(breaker)
+
+            case e:Expression=>
+              breakMap.get(e.breakId).foreach(b=>b.setExpression(e.frame,e.et,e.s))
           }
         case None => info(s"breakerId=${action.breakId} action=${action} is no valid,because the breaker is not exist")
       }

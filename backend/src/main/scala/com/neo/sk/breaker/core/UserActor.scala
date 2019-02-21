@@ -93,7 +93,7 @@ object UserActor {
 
   def create(userInfo: UserProtocol.UserInfo): Behavior[Command] = {
     Behaviors.setup[Command] { ctx =>
-      log.debug(s"${ctx.self.path} is starting...")
+      log.debug(s"${userInfo.playerId.getOrElse("unKnow")} is starting...")
       implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
       Behaviors.withTimers[Command] { implicit timer =>
         implicit val sendBuffer = new MiddleBufferInJvm(8192)

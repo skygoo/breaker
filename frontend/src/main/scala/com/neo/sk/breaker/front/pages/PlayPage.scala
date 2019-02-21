@@ -12,18 +12,25 @@ import scala.xml.Elem
   * Date on 2019/2/17
   * Time at 下午8:34
   */
-class PlayPage(playerInfo:UserInfo) extends Page{
-  private val canvas = <canvas id ="GameView" tabindex="1"></canvas>
+class PlayPage(playerInfo: UserInfo) extends Page {
+  private val canvas = <canvas id="GameView" tabindex="1"></canvas>
+  var gameHolder: Option[GamePlayHolderImpl] = None
 
   def init() = {
-    val gameHolder = new GamePlayHolderImpl("GameView", playerInfo)
-    gameHolder.start
+    gameHolder = Some(GamePlayHolderImpl("GameView", playerInfo))
+    gameHolder.foreach(_.start)
   }
 
-  override def render: Elem ={
-    Shortcut.scheduleOnce(() =>init(),0)
+  def expressionCallback(et:Byte,s:Option[String])={
+    gameHolder.foreach(_.sendExpression(et,s))
+  }
+
+  override def render: Elem = {
+    Shortcut.scheduleOnce(() => init(), 0)
     <div>
-      {canvas}
+      {canvas}<div style="float:right;width:20%;height:100%">
+      {ExpressionPage(expressionCallback).render}
+    </div>
     </div>
   }
 }

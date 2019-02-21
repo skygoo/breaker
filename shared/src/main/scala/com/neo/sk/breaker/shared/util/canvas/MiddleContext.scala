@@ -61,4 +61,8 @@ trait MiddleContext {
   def save(): Unit
 
   def restore(): Unit
+
+  def rotate(d: Float): Unit
+
+  def translate(x: Float, y: Float): Unit
 }

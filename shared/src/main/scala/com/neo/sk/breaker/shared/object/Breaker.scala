@@ -33,6 +33,12 @@ case class Breaker(
   protected var gunDirection:Float=0
   protected var bulletLevel:Byte=1 //子弹等级=1
 
+  protected var expression:Option[(Long,Byte,Option[String])]=None
+
+  def setExpression(f:Long,et:Byte,s:Option[String])= expression=Some((f,et,s))
+
+  def getExpression= expression
+
   // 获取坦克状态
   def getBreakState():BreakState = {
     BreakState(playerId,breakId,name,position)

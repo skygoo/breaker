@@ -66,9 +66,10 @@ object BreakerEvent {
   final case class UC(breakId:Int,override val frame:Long,d:Float,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
   type UserMouseClick = UC
 
+  final case class Expression(breakId:Int, override val frame: Long,et:Byte,s:Option[String],override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
+
+  /**生成小球*/
   final case class GenerateBall(override val frame:Long, ball:BallState, s:Boolean) extends EnvironmentEvent with WsMsgServer
-
-
   /**生成砖块*/
   final case class GenerateObstacle(override val frame:Long,obstacleState: ObstacleState) extends EnvironmentEvent with WsMsgServer
   /**砖块消失事件*/

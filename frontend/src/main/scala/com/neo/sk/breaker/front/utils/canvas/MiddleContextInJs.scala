@@ -87,4 +87,8 @@ class MiddleContextInJs extends MiddleContext {
   override def save(): Unit = context.save()
 
   override def restore(): Unit = context.restore()
+
+  override def translate(x: Float, y: Float): Unit = context.translate(x, y)
+
+  override def rotate(d: Float): Unit = context.rotate(d)
 }
