@@ -2,7 +2,7 @@ package com.neo.sk.breaker.front.pages
 
 import com.neo.sk.breaker.front.common.{Page, Routes}
 import com.neo.sk.breaker.front.utils.{Http, Shortcut}
-import com.neo.sk.breaker.shared.protocol.UserProtocol.{UserInfo, UserLoginReq, UserSignReq}
+import com.neo.sk.breaker.shared.protocol.UserProtocol.{GetUserInfoRsp, UserInfo, UserLoginReq, UserSignReq}
 import com.neo.sk.breaker.shared.ptcl.SuccessRsp
 import mhtml.Var
 import mhtml.emptyHTML
@@ -41,15 +41,27 @@ object LoginPage extends Page {
 
   var playerInfo: UserInfo = UserInfo(getRandomName, None, None)
 
+  val userIdVar:Var[Option[String]]=Var(None)
+
+  def getUserInfo():Unit= {
+    Http.getAndParse[GetUserInfoRsp](Routes.User.sign).map {rsp=>
+      if(rsp.errCode==0){
+
+      }
+    }
+  }
+
   def login(): Unit = {
-    val name = dom.document.getElementById("loginId").asInstanceOf[Input].value
+    val userId = dom.document.getElementById("loginId").asInstanceOf[Input].value
     val psw = dom.document.getElementById("loginPassword").asInstanceOf[Input].value
     val url = Routes.User.login
-    val data = UserLoginReq(name, psw).asJson.noSpaces
+    val data = UserLoginReq(userId, psw).asJson.noSpaces
     Http.postJsonAndParse[SuccessRsp](url, data).map {
       rsp =>
         if (rsp.errCode == 0) {
-          MainPage.createConfirm(rsp.msg)
+          userIdVar:=Some(userId)
+          playerInfo=playerInfo.copy(userName=Some(userId))
+          fromContentFlagVar := 0
         } else {
           MainPage.createConfirm(rsp.msg)
         }
@@ -67,8 +79,9 @@ object LoginPage extends Page {
       Http.postJsonAndParse[SuccessRsp](Routes.User.sign, data).map {
         rsp =>
           if (rsp.errCode == 0) {
-            MainPage.createConfirm(rsp.msg)
+            userIdVar:=Some(userId)
             playerInfo=playerInfo.copy(userName=Some(userId))
+            fromContentFlagVar := 0
           } else {
             MainPage.createConfirm(rsp.msg)
           }
@@ -102,13 +115,13 @@ object LoginPage extends Page {
     case 1 =>
       <div class="filter-main-middle-r">
         <div class="form-content" style="width:80%;margin: auto;">
-          <input class="form-control" id="loginId" placeholder="userId"></input>
-          <input type="password" class="form-control" id="loginPassword" placeholder="password"></input>
+          <input class="form-control input_class" id="loginId" placeholder="userId"></input>
+          <input type="password" class="form-control input_class" id="loginPassword" placeholder="password"></input>
         </div>
-        <div class="form-submit">
+        <div class="form-submit input_class">
           <div class="button-all" style="width:94px;margin: auto;" onclick={() => login()}>登录</div>
         </div>
-        <div class="form-tip">
+        <div class="form-tip input_class">
           <span>如果你还没有邮箱账号
             <a onclick={() => fromContentFlagVar := 2} style="cursor:pointer;">点击这里</a>
           </span>
@@ -119,15 +132,15 @@ object LoginPage extends Page {
     case 2 =>
       <div class="filter-main-middle-r">
         <div class="form-content" style="width:80%;margin: auto;">
-          <input class="form-control" id="userId" placeholder="userId(8字内)"></input>
-          <input class="form-control" id="userEmail" placeholder="email"></input>
-          <input type="password" class="form-control" id="userPassword" placeholder="password"></input>
-          <input type="password" class="form-control" id="userPasswordReEnter" placeholder="re_enter password"></input>
+          <input class="form-control input_class" id="userId" placeholder="userId(8字内)" maxlength="8"></input>
+          <input class="form-control input_class" id="userEmail" placeholder="email"></input>
+          <input type="password" class="form-control input_class" id="userPassword" placeholder="password"></input>
+          <input type="password" class="form-control input_class" id="userPasswordReEnter" placeholder="re_enter password"></input>
         </div>
-        <div class="form-submit">
+        <div class="form-submit input_class">
           <div class="button-all" style="width:94px;margin: auto;" onclick={() => signUp()}>注册</div>
         </div>
-        <div class="form-tip">
+        <div class="form-tip input_class">
           <span>如果你已经注册过了
             <a onclick={() => fromContentFlagVar := 1} style="cursor:pointer;">点击这里</a>
           </span>
@@ -146,7 +159,7 @@ object LoginPage extends Page {
             <span class={fromContentFlagVar.map {
               case 0 => "filter-header-a-on"
               case _ => "filter-header-a"
-            }} onclick={() => fromContentFlagVar := 0}>游客</span>
+            }} onclick={() => fromContentFlagVar := 0}>{userIdVar.map(r=>if(r.nonEmpty)r.get else "游客")}</span>
             <span class={fromContentFlagVar.map {
               case 1 => "filter-header-a-on"
               case _ => "filter-header-a"

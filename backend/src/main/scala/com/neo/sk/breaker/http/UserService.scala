@@ -17,12 +17,13 @@ import akka.actor.typed.scaladsl.AskPattern._
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import com.neo.sk.breaker.Boot.{executor, scheduler, timeout}
 import com.neo.sk.breaker.core.UserManager
+import com.neo.sk.breaker.http.SessionBase.SessionCombine
 import com.neo.sk.breaker.models.DAO.{SignUserInfo, UserInfoDAO}
 import com.neo.sk.breaker.shared.ptcl.{ErrorRsp, SuccessRsp}
 import io.circe._
 import org.slf4j.LoggerFactory
 import com.neo.sk.breaker.protocol.CommonErrorCode.parseJsonError
-import com.neo.sk.breaker.shared.protocol.UserProtocol.{UserLoginReq, UserSignReq}
+import com.neo.sk.breaker.shared.protocol.UserProtocol.{GetUserInfoRsp, UserLoginReq, UserSignReq}
 /**
   * Created by sky
   * Date on 2019/2/21
@@ -43,10 +44,19 @@ trait UserService extends ServiceUtils {
               if(u.password!=req.password){
                 complete(ErrorRsp(10002,s"密码错误"))
               }else{
-                complete(SuccessRsp())
+                u.state match {
+                  case Constants.stateAllow =>
+                    val session = SessionCombine(Constants.userType,u.userId,System.currentTimeMillis()).toSessionMap
+                    addSession(session){
+                      log.info(s"user ${req.userId} login success")
+                      complete(SuccessRsp())
+                    }
+                  case _ =>
+                    complete(ErrorRsp(10004,"账号被禁用"))
+                }
               }
             case None=>
-              complete(SuccessRsp())
+              complete(ErrorRsp(10003,"用户名不存在"))
           }.recover{
             case e:Exception =>
               log.debug(s"获取用户信息失败，recover error:$e")
@@ -75,7 +85,11 @@ trait UserService extends ServiceUtils {
               dealFutureResult(
                 UserInfoDAO.insertInfo(SignUserInfo(req.userId,req.mail,req.password,System.currentTimeMillis(),Constants.stateAllow)).map(t=>
                   if(t>0){
-                    complete(SuccessRsp())
+                    val session = SessionCombine(Constants.userType,req.userId,System.currentTimeMillis()).toSessionMap
+                    addSession(session){
+                      log.info(s"user ${req.userId} sign and login success")
+                      complete(SuccessRsp())
+                    }
                   }else{
                     complete(ErrorRsp(10012,s"注册失败"))
                   }
@@ -87,6 +101,12 @@ trait UserService extends ServiceUtils {
       case Left(e) =>
         log.error(s"json parse error: $e")
         complete(parseJsonError)
+    }
+  }
+
+  val getUserInfo = (path("getUserInfo") & get){
+    authUser{u=>
+      complete(GetUserInfoRsp(Some(u.userType),Some(u.id)))
     }
   }
 

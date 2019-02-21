@@ -14,31 +14,23 @@ import org.slf4j.LoggerFactory
 object SessionBase {
 
   private val SessionTypeKey = "STKey"
+
   object AccountSessionKeys {
     val sessionType = "user_session"
-//    val userType = "userType"
-//    val accountId = "accountId"
     val name = "name"
-//    val nameCn = "nameCn"
-    val timestamp = "hw1801a_user_timestamp"
+    val timestamp = "user_timestamp"
   }
 
 
-
   val log = LoggerFactory.getLogger(this.getClass)
+
   case class AccountSession(
-//                             userType:Int,
-//                             accountId:Long,
-                             name:String,
-//                             nameCn:String,
-                             time:Long
-                           ){
+                             userId: String,
+                             time: Long
+                           ) {
     def toSessionMap = Map(
       SessionTypeKey -> AccountSessionKeys.sessionType,
-//      AccountSessionKeys.accountId -> accountId.toString,
-//      AccountSessionKeys.userType -> userType.toString,
-      AccountSessionKeys.name -> name,
-//      AccountSessionKeys.nameCn -> nameCn,
+      AccountSessionKeys.name -> userId,
       AccountSessionKeys.timestamp -> time.toString
     )
   }
@@ -50,19 +42,16 @@ object SessionBase {
     val nickname = "yilia_nickname"
     val headImg = "yilia_headImg"
   }
+
   case class SessionCombine(
                              userType: Int,
                              id: String,
                              timestamp: Long,
-                             nickname: String,
-                             headImg: String="",
                            ) {
     def toSessionMap = Map(
       SessionKeys.accountType -> userType.toString,
       SessionKeys.accountId -> id,
-      SessionKeys.timestamp -> timestamp.toString,
-      SessionKeys.nickname -> nickname,
-      SessionKeys.headImg -> headImg
+      SessionKeys.timestamp -> timestamp.toString
     )
   }
 
@@ -79,18 +68,18 @@ trait SessionBase extends SessionSupport {
   private val log = LoggerFactory.getLogger(this.getClass)
 
   implicit class SessionTransformer(sessionMap: Map[String, String]) {
-    def toAccountSession:Option[AccountSession] = {
+    def toAccountSession: Option[AccountSession] = {
       //      log.debug(s"toAdminSession: change map to session, ${sessionMap.mkString(",")}")
       try {
         if (sessionMap.get(SessionTypeKey).exists(_.equals(AccountSessionKeys.sessionType))) {
-          if(sessionMap(AccountSessionKeys.timestamp).toLong - System.currentTimeMillis() > sessionTimeout){
+          if (sessionMap(AccountSessionKeys.timestamp).toLong - System.currentTimeMillis() > sessionTimeout) {
             None
-          }else {
+          } else {
             Some(AccountSession(
-//              sessionMap(AccountSessionKeys.userType).toInt,
-//              sessionMap(AccountSessionKeys.accountId).toLong,
+              //              sessionMap(AccountSessionKeys.userType).toInt,
+              //              sessionMap(AccountSessionKeys.accountId).toLong,
               sessionMap(AccountSessionKeys.name),
-//              sessionMap(AccountSessionKeys.nameCn),
+              //              sessionMap(AccountSessionKeys.nameCn),
               sessionMap(AccountSessionKeys.timestamp).toLong
             ))
           }
@@ -105,6 +94,7 @@ trait SessionBase extends SessionSupport {
           None
       }
     }
+
     def toUserSession: Option[SessionCombine] = {
       log.debug(s"toUserSession: change map to session, ${sessionMap.mkString(",")}")
       try {
@@ -112,9 +102,7 @@ trait SessionBase extends SessionSupport {
           Some(SessionCombine(
             sessionMap(SessionKeys.accountType).toInt,
             sessionMap(SessionKeys.accountId),
-            sessionMap(SessionKeys.timestamp).toLong,
-            sessionMap(SessionKeys.nickname),
-            sessionMap(SessionKeys.headImg)
+            sessionMap(SessionKeys.timestamp).toLong
           ))
         }
         else {
@@ -129,6 +117,7 @@ trait SessionBase extends SessionSupport {
       }
     }
   }
+
   protected val optionalAccountSession: Directive1[Option[AccountSession]] = optionalSession.flatMap {
     case Right(sessionMap) => BasicDirectives.provide(sessionMap.toAccountSession)
     case Left(error) =>

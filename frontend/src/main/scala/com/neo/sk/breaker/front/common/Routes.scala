@@ -44,6 +44,8 @@ object Routes {
 
     val login = userBase + "/login"
 
+    val getUserInfo = userBase + "/getUserInfo"
+
   }
 
 

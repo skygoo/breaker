@@ -60,7 +60,12 @@ object UserManager {
               userActor ! UserActor.ChangeBehaviorToInit
               userActor ! UserActor.WsCreateSuccess
             case None=>
-              val uid=Constants.BreakerGameUserIdPrefix+uidGenerator.getAndIncrement().toString
+              val uid=playerInfo.userName match {
+                case Some(value)=>
+                  Constants.BreakerSignUserIdPrefix+value
+                case None=>
+                  Constants.BreakerGameUserIdPrefix+uidGenerator.getAndIncrement().toString
+              }
               val userActor=getUserActor(ctx,playerInfo.copy(playerId = Some(uid)))
               replyTo ! getWebSocketFlow(userActor)
               userActor ! UserActor.ChangeBehaviorToInit

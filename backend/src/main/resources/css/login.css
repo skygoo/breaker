@@ -141,3 +141,7 @@
     text-align: center;
     cursor: pointer;
 }
+
+.input_class{
+    margin-top: 3px;!important;
+}
