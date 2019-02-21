@@ -56,6 +56,8 @@ trait BreakGameConfig {
 
   val breakHeight:Float
 
+  val breakBallLimit:Int
+
   val breakGunWidth:Float
 
   val breakGunHeight:Float

@@ -75,9 +75,9 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
             case ExpressionMap.e0=>
               ctx.setFill("#006699")
               ctx.setTextAlign("center")
-              ctx.setFont("楷体", "normal", 2 * canvasUnit)
+              ctx.setFont("楷体", "normal", 3 * canvasUnit)
               ctx.setLineWidth(2)
-              ctx.fillText(s"${e._3.getOrElse("")}", pos.x, pos.y, 20 * canvasUnit)
+              ctx.fillText(s"${e._3.getOrElse("")}", pos.x+ (breaker.getWidth/2+5) *canvasUnit, (p.y+2-breaker.getHeight / 2) * canvasUnit, 20 * canvasUnit)
             case _=>
               ctx.drawImage(expressionInfoCacheMap.getOrElseUpdate(e._2,generateExpCacheCanvas(e._2)), pos.x+2*canvasUnit, (p.y-breaker.getHeight / 2) * canvasUnit,
                 Some(breaker.getWidth * canvasUnit, breaker.getHeight * canvasUnit))

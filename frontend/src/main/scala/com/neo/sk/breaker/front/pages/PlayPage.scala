@@ -27,8 +27,8 @@ class PlayPage(playerInfo: UserInfo) extends Page {
 
   override def render: Elem = {
     Shortcut.scheduleOnce(() => init(), 0)
-    <div>
-      {canvas}<div style="float:right;width:20%;height:100%">
+    <div style="height:100%">
+      {canvas}<div style="float:right;width:20%;height:100%;display: table;">
       {ExpressionPage(expressionCallback).render}
     </div>
     </div>

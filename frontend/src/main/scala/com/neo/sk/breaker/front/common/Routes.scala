@@ -14,7 +14,7 @@ object Routes {
 
   val getRoomListRoute = base + "/getRoomIdList"
 
-  def getImgUrl(imgName:String) = base + s"/static/img/${imgName}"
+  def getImgUrl(imgName:String) = base + s"/static/img/$imgName"
 
   def wsJoinGameUrl(name: String, userId: Option[String], playerId: Option[String]): String = {
     base + s"/game/join?name=$name"+{userId match {

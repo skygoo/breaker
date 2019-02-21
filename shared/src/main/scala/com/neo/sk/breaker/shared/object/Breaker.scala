@@ -78,7 +78,9 @@ case class Breaker(
   }
 
   def fillBullet()={
-    curBulletNum+=1
+    if(curBulletNum< config.breakBallLimit) {
+      curBulletNum+=1
+    }
   }
 
   def getPosition4Animation(offsetTime:Long) = {

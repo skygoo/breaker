@@ -27,7 +27,8 @@ final case class BreakerParameters(
                                     breakHeight: Float,
                                     breakGunWidth: Float,
                                     breakGunHeight: Float,
-                                    fillBulletFrame: Int
+                                    fillBulletFrame: Int,
+                                    bulletLimit:Int
                                   )
 
 final case class PropParameters(
@@ -117,4 +118,6 @@ case class BreakGameConfigImpl(
   override val breakGunHeight: Float = breakerParameters.breakGunHeight
 
   override val fillBallFrame: Int = breakerParameters.fillBulletFrame
+
+  override val breakBallLimit: Int = breakerParameters.bulletLimit
 }

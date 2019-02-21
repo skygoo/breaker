@@ -70,8 +70,10 @@ case class BreakGameConfigServerImpl(config: Config){
     .requiring(_ > 0,"minimum supported break gun height is 1")
   private[this] val breakFillBulletFrame = config.getInt("breakerGame.break.fillBulletFrame")
     .requiring(_ > 0,"minimum supported break fillBulletFrame is 1")
+  private[this] val breakBulletLimit = config.getInt("breakerGame.break.bulletLimit")
+    .requiring(_ > 0,"minimum supported break bulletLimit is 1")
 
-  private val breakParameters = BreakerParameters(breakWidthData,breakHeightData,breakGunWidthData,breakGunHeightData,breakFillBulletFrame)
+  private val breakParameters = BreakerParameters(breakWidthData,breakHeightData,breakGunWidthData,breakGunHeightData,breakFillBulletFrame,breakBulletLimit)
 
   val gameConfig = BreakGameConfigImpl(gridBoundary,gameFameDuration,ballParameters,obstacleParameters,breakParameters)
 
