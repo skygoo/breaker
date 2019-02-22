@@ -2,6 +2,7 @@ package com.neo.sk.breaker.front.pages
 
 import com.neo.sk.breaker.front.common.{Page, Routes}
 import com.neo.sk.breaker.front.utils.{Http, Shortcut}
+import com.neo.sk.breaker.shared.model.Constants
 import com.neo.sk.breaker.shared.protocol.UserProtocol.{GetUserInfoRsp, UserInfo, UserLoginReq, UserSignReq}
 import com.neo.sk.breaker.shared.ptcl.SuccessRsp
 import mhtml.Var
@@ -16,13 +17,14 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
+import com.neo.sk.breaker.shared.model.Constants.RoomType
 /**
   * Created by sky
   * Date on 2019/1/30
   * Time at 上午9:56
   */
 object LoginPage extends Page {
+  var roomType=RoomType.confrontation
   val random = new Random(System.currentTimeMillis())
   val fromContentFlagVar = Var(0)
 
@@ -44,9 +46,11 @@ object LoginPage extends Page {
   val userIdVar:Var[Option[String]]=Var(None)
 
   def getUserInfo():Unit= {
-    Http.getAndParse[GetUserInfoRsp](Routes.User.sign).map {rsp=>
-      if(rsp.errCode==0){
-
+    Http.getAndParse[GetUserInfoRsp](Routes.User.getUserInfo).map {rsp=>
+      if(rsp.errCode==0&&rsp.userType.getOrElse(0)==Constants.userType){
+        userIdVar:=Some(rsp.userId.getOrElse(""))
+      }else{
+        userIdVar:=None
       }
     }
   }
@@ -54,13 +58,30 @@ object LoginPage extends Page {
   def login(): Unit = {
     val userId = dom.document.getElementById("loginId").asInstanceOf[Input].value
     val psw = dom.document.getElementById("loginPassword").asInstanceOf[Input].value
-    val url = Routes.User.login
-    val data = UserLoginReq(userId, psw).asJson.noSpaces
-    Http.postJsonAndParse[SuccessRsp](url, data).map {
+    if(userId!=""&&psw!=""){
+      val url = Routes.User.login
+      val data = UserLoginReq(userId, psw).asJson.noSpaces
+      Http.postJsonAndParse[SuccessRsp](url, data).map {
+        rsp =>
+          if (rsp.errCode == 0) {
+            userIdVar:=Some(userId)
+            playerInfo=playerInfo.copy(userName=Some(userId))
+            fromContentFlagVar := 0
+          } else {
+            MainPage.createConfirm(rsp.msg)
+          }
+      }
+    }else{
+      MainPage.createConfirm("输入不可为空")
+    }
+  }
+
+  def logout(): Unit = {
+    Http.getAndParse[SuccessRsp](Routes.User.logout).map {
       rsp =>
         if (rsp.errCode == 0) {
-          userIdVar:=Some(userId)
-          playerInfo=playerInfo.copy(userName=Some(userId))
+          userIdVar:=None
+          playerInfo=playerInfo.copy(userName=None)
           fromContentFlagVar := 0
         } else {
           MainPage.createConfirm(rsp.msg)
@@ -73,26 +94,29 @@ object LoginPage extends Page {
     val mail = dom.document.getElementById("userEmail").asInstanceOf[Input].value
     val password = dom.document.getElementById("userPassword").asInstanceOf[Input].value
     val passwordRe = dom.document.getElementById("userPasswordReEnter").asInstanceOf[Input].value
-
-    if (password.equals(passwordRe)) {
-      val data = UserSignReq(userId, mail, password).asJson.noSpaces
-      Http.postJsonAndParse[SuccessRsp](Routes.User.sign, data).map {
-        rsp =>
-          if (rsp.errCode == 0) {
-            userIdVar:=Some(userId)
-            playerInfo=playerInfo.copy(userName=Some(userId))
-            fromContentFlagVar := 0
-          } else {
-            MainPage.createConfirm(rsp.msg)
-          }
+    if(userId!=""&&mail!=""&&password!=""&&passwordRe!=""){
+      if (password.equals(passwordRe)) {
+        val data = UserSignReq(userId, mail, password).asJson.noSpaces
+        Http.postJsonAndParse[SuccessRsp](Routes.User.sign, data).map {
+          rsp =>
+            if (rsp.errCode == 0) {
+              userIdVar:=Some(userId)
+              playerInfo=playerInfo.copy(userName=Some(userId))
+              fromContentFlagVar := 0
+            } else {
+              MainPage.createConfirm(rsp.msg)
+            }
+        }
+      }else{
+        MainPage.createConfirm("密码输入不一致")
       }
     }else{
-      MainPage.createConfirm("密码输入不一致")
+      MainPage.createConfirm("输入不可为空")
     }
   }
 
   def start = {
-    Shortcut.redirect("#/play")
+    Shortcut.redirect(s"#/play/$roomType")
   }
 
   val filterMiddleDiv = fromContentFlagVar.map {
@@ -111,6 +135,7 @@ object LoginPage extends Page {
             elem.value = playerInfo.nickName}></img>
         </span>
         <div class="button-all" style="width:94px;margin: auto;margin-top:30px;" onclick={() => start}>开始游戏</div>
+        {userIdVar.map{r=>if(r.nonEmpty) <div class="button-all" style="width:94px;margin: auto;margin-top:30px;" onclick={() => logout()}>退出登录</div> else emptyHTML }}
       </div>
     case 1 =>
       <div class="filter-main-middle-r">

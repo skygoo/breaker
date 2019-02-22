@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory
 
 object SessionBase {
 
-  private val SessionTypeKey = "STKey"
+  val SessionTypeKey = "STKey"
 
   object AccountSessionKeys {
     val sessionType = "user_session"

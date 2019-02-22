@@ -146,9 +146,9 @@ object UserActor {
 
         case WebSocketMsg(reqOpt) =>
           reqOpt match {
-            case Some(BreakerEvent.StartGame) =>
+            case Some(m:BreakerEvent.StartGame) =>
               log.info(s"$userInfo get ws msg startGame")
-              roomManager ! ActorProtocol.JoinRoom(userInfo,ctx.self,frontActor)
+              roomManager ! ActorProtocol.JoinRoom(userInfo,m.roomType,ctx.self,frontActor)
 
             case Some(t:BreakerEvent.PingPackage) =>
               frontActor ! BreakerEvent.Wrap(t.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
@@ -159,7 +159,7 @@ object UserActor {
           Behaviors.same
 
         case msg:ActorProtocol.JoinRoomSuccess=>
-          frontActor ! BreakerEvent.Wrap(BreakerEvent.YourInfo(msg.breaker.getBreakState(),msg.config).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+          frontActor ! BreakerEvent.Wrap(BreakerEvent.YourInfo(msg.breaker.getBreakState(),msg.config,msg.roomType).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
           switchBehavior(ctx,"play",play(userInfo,frontActor,msg.roomActor))
 
 
@@ -201,10 +201,6 @@ object UserActor {
 
               case t: BreakerEvent.PingPackage =>
                 frontActor ! BreakerEvent.Wrap(t.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
-                Behaviors.same
-
-              case StartGame =>
-                log.info("startGame")
                 Behaviors.same
 
               case _ =>

@@ -28,6 +28,8 @@ trait GameContainer {
 
   implicit val config:BreakGameConfig
 
+  val roomType:Byte
+
   val boundary : Point = config.boundary
 
   var systemFrame:Long = 0L //系统帧数
@@ -37,6 +39,8 @@ trait GameContainer {
   val obstacleMap = mutable.HashMap[Int,Obstacle]() //obstacleId -> Obstacle  可打击的砖头
   val environmentMap = mutable.HashMap[Int,Obstacle]() //obstacleId -> steel and river  不可打击
   val quadTree : QuadTree = new QuadTree(Rectangle(Point(0,0),boundary))
+
+  val breakMoveAction = mutable.HashMap[Int,mutable.HashSet[Byte]]() //tankId -> pressed direction key code
 
   protected val gameEventMap = mutable.HashMap[Long,List[GameEvent]]() //frame -> List[GameEvent] 待处理的事件 frame >= curFrame
   protected val actionEventMap = mutable.HashMap[Long,List[UserActionEvent]]() //frame -> List[UserActionEvent]
@@ -58,7 +62,7 @@ trait GameContainer {
   }
 
   implicit def state2Breaker(breaker:BreakState):Breaker={
-    Breaker(config,breaker.playerId,breaker.breakId,breaker.name,breaker.position)
+    new Breaker(config,breaker)
   }
 
   protected def handleUserLeftRoom(e:UserLeftRoom) :Unit = {
@@ -138,6 +142,7 @@ trait GameContainer {
       * 用户行为事件
       * */
     actions.sortBy(t => (t.breakId,t.serialNum)).foreach{ action =>
+      val tankMoveSet = breakMoveAction.getOrElse(action.breakId,mutable.HashSet[Byte]())
       breakMap.get(action.breakId) match {
         case Some(breaker) =>
           action match {
@@ -147,6 +152,16 @@ trait GameContainer {
               //remind 调整鼠标方向
               breaker.setTankGunDirection(a.d)
               tankExecuteLaunchBulletAction(breaker)
+
+            case a:UserPressKeyDown =>
+              tankMoveSet.add(a.keyCodeDown)
+              breakMoveAction.put(a.breakId,tankMoveSet)
+              breaker.setTankDirection(tankMoveSet.toSet)
+
+            case a:UserPressKeyUp =>
+              tankMoveSet.remove(a.keyCodeUp)
+              breakMoveAction.put(a.breakId,tankMoveSet)
+              breaker.setTankDirection(tankMoveSet.toSet)
 
             case e:Expression=>
               breakMap.get(e.breakId).foreach(b=>b.setExpression(e.frame,e.et,e.s))
@@ -177,6 +192,17 @@ trait GameContainer {
     ballMap.toList.sortBy(_._1).map(_._2).foreach{ ball =>
       ball.move(boundary,quadTree,removeBall,attackObstacleCallBack(ball))
     }
+  }
+
+  protected def breakMove():Unit = {
+    breakMap.toList.sortBy(_._1).map(_._2).foreach{ ball =>
+      ball.move(boundary,quadTree)
+    }
+  }
+
+  protected def objectMove():Unit = {
+    breakMove()
+    ballMove()
   }
 
   protected def handleObstacleAttacked(e:ObstacleAttacked) :Unit
@@ -217,7 +243,7 @@ trait GameContainer {
   def update():Unit = {
     handleUserLeftRoomNow()
     handleGameOverNow()
-    ballMove()
+    objectMove()
     handleUserActionEventNow()
     handleObstacleAttackedNow()
 

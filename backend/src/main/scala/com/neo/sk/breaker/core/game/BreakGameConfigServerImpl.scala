@@ -23,7 +23,9 @@ case class BreakGameConfigServerImpl(config: Config){
     .requiring(_ > 10,"minimum supported grid boundary width is 100")
   private[this] val gridBoundaryHeight = config.getInt("breakerGame.gridBoundary.height")
     .requiring(_ > 50,"minimum supported grid boundary height is 50")
-  private[this] val gridBoundary = GridBoundary(gridBoundaryWidth,gridBoundaryHeight)
+  private[this] val gridColumn = config.getInt("breakerGame.gridBoundary.column")
+    .requiring(_ > 10,"minimum supported grid boundary gridColumn is 10")
+  private[this] val gridBoundary = GridBoundary(gridBoundaryWidth,gridBoundaryHeight,gridColumn)
 
   private[this] val gameFameDuration = config.getLong("breakerGame.frameDuration")
     .requiring(t => t >= 1l,"minimum game frame duration is 1 ms")
@@ -39,9 +41,9 @@ case class BreakGameConfigServerImpl(config: Config){
   private val ballParameters = BallParameters(ballRadius.zip(ballDamage),maxFly,ballSpeedData)
 
   private[this] val obstacleWidthData = config.getDouble("breakerGame.obstacle.width")
-    .requiring(_ > 0,"minimum supported obstacle width is 1").toFloat
+    .requiring(r=>r > 0 && r*16==gridBoundaryWidth,"minimum supported obstacle width is 1").toFloat
   private[this] val collisionWOffset = config.getDouble("breakerGame.obstacle.collisionWidthOffset")
-    .requiring(_ > 0,"minimum supported obstacle width is 1").toFloat
+    .requiring(_ >= 0,"minimum supported obstacle width is 0").toFloat
 
 
   private[this] val propBloodData = config.getInt("breakerGame.obstacle.airDrop.blood").toByte
@@ -59,9 +61,13 @@ case class BreakGameConfigServerImpl(config: Config){
     brickParameters = BrickParameters(brickBloodData,brickNumData)
   )
 
-  private[this] val breakWidthData = config.getDouble("breakerGame.break.width")
+  private[this] val breakWidthData1 = config.getDouble("breakerGame.break.width1")
     .requiring(_ > 0,"minimum supported break width is 1").toFloat
-  private[this] val breakHeightData = config.getDouble("breakerGame.break.height")
+  private[this] val breakHeightData1 = config.getDouble("breakerGame.break.height1")
+    .requiring(_ > 0,"minimum supported break width is 1").toFloat
+  private[this] val breakWidthData2 = config.getDouble("breakerGame.break.width2")
+    .requiring(_ > 0,"minimum supported break width is 1").toFloat
+  private[this] val breakHeightData2 = config.getDouble("breakerGame.break.height2")
     .requiring(_ > 0,"minimum supported break width is 1").toFloat
   private[this] val breakGunWidthData = config.getInt("breakerGame.break.gunWidth")
     .requiring(_ > 0,"minimum supported break gun width is 1")
@@ -71,8 +77,10 @@ case class BreakGameConfigServerImpl(config: Config){
     .requiring(_ > 0,"minimum supported break fillBulletFrame is 1")
   private[this] val breakBulletLimit = config.getInt("breakerGame.break.bulletLimit")
     .requiring(_ > 0,"minimum supported break bulletLimit is 1")
+  private[this] val breakSpeed = config.getInt("breakerGame.break.breakSpeed")
+    .requiring(_ > 0,"minimum supported break breakSpeed is 1")
 
-  private val breakParameters = BreakerParameters(breakWidthData,breakHeightData,breakGunWidthData,breakGunHeightData,breakFillBulletFrame,breakBulletLimit)
+  private val breakParameters = BreakerParameters(breakWidthData1,breakHeightData1,breakWidthData2,breakHeightData2,breakGunWidthData,breakGunHeightData,breakFillBulletFrame,breakBulletLimit,breakSpeed)
 
   val gameConfig = BreakGameConfigImpl(gridBoundary,gameFameDuration,ballParameters,obstacleParameters,breakParameters)
 

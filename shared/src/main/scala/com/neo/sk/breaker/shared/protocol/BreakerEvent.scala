@@ -28,7 +28,7 @@ object BreakerEvent {
 
   sealed trait WsMsgFront extends WsMsgFrontSource
 
-  final case object StartGame extends WsMsgFront
+  final case class StartGame(roomType:Byte) extends WsMsgFront
 
   /**后台建立WebSocket*/
   trait WsMsgSource
@@ -40,9 +40,8 @@ object BreakerEvent {
   case object DecodeError extends WsMsgServer
 
   case object WsSuccess extends WsMsgServer
-  final case class YourInfo(break:BreakState, config:BreakGameConfigImpl) extends WsMsgServer
+  final case class YourInfo(break:BreakState, config:BreakGameConfigImpl,roomType:Byte) extends WsMsgServer
 
-  final case class UserJoinRoom(tankState:BreakState, override val frame: Long) extends  UserEvent with WsMsgServer
   final case class UserLeftRoom(playerId:String, name:String, breakId:Int, override val frame:Long) extends UserEvent with WsMsgServer
   final case class SyncGameState(state:GameContainerState) extends WsMsgServer
   final case class SyncGameAllState(gState:GameContainerAllState) extends WsMsgServer
@@ -65,6 +64,10 @@ object BreakerEvent {
 
   final case class UC(breakId:Int,override val frame:Long,d:Float,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
   type UserMouseClick = UC
+
+  final case class UserPressKeyDown(breakId:Int,override val frame:Long,keyCodeDown:Byte,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
+  final case class UserPressKeyUp(breakId:Int,override val frame:Long,keyCodeUp:Byte,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
+
 
   final case class Expression(breakId:Int, override val frame: Long,et:Byte,s:Option[String],override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
 

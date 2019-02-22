@@ -12,12 +12,12 @@ import scala.xml.Elem
   * Date on 2019/2/17
   * Time at 下午8:34
   */
-class PlayPage(playerInfo: UserInfo) extends Page {
+class PlayPage(roomType:Byte,playerInfo: UserInfo) extends Page {
   private val canvas = <canvas id="GameView" tabindex="1"></canvas>
   var gameHolder: Option[GamePlayHolderImpl] = None
 
   def init() = {
-    gameHolder = Some(GamePlayHolderImpl("GameView", playerInfo))
+    gameHolder = Some(GamePlayHolderImpl("GameView",roomType, playerInfo))
     gameHolder.foreach(_.start)
   }
 

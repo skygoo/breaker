@@ -4,7 +4,7 @@ import com.neo.sk.breaker.shared.game.GameContainerClientImpl
 import com.neo.sk.breaker.shared.model.Point
 
 import scala.collection.mutable
-import com.neo.sk.breaker.shared.model.Constants.{BreakColor, ExpressionMap, GameAnimation}
+import com.neo.sk.breaker.shared.model.Constants.{BreakColor, ExpressionMap, GameAnimation, RoomType}
 /**
   * Created by sky
   * Date on 2019/2/18
@@ -13,8 +13,8 @@ import com.neo.sk.breaker.shared.model.Constants.{BreakColor, ExpressionMap, Gam
 trait BreakerDrawUtil {this:GameContainerClientImpl =>
   private val expressionInfoCacheMap = mutable.HashMap[Byte, Any]()
 
-  private val blueTank =drawFrame.createImage("/img/blueTank.png")
-  private val redTank =drawFrame.createImage("/img/redTank.png")
+  private val blueTank =drawFrame.createImage(if(roomType==RoomType.confrontation) "/img/blueTank.png" else "/img/bluep.png")
+  private val redTank =drawFrame.createImage(if(roomType==RoomType.confrontation) "/img/redTank.png" else "/img/redp.png")
   private val talkImg =drawFrame.createImage("/img/对话框.png")
 
 
@@ -30,45 +30,55 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
 
   protected def drawBreaker(up:Boolean,offset:Point, offsetTime:Long) = {
     breakMap.values.foreach { breaker =>
+      val p4a=breaker.getPosition4Animation(boundary,quadTree,offsetTime)
       val p =if(up){
-        offset-breaker.getPosition4Animation(offsetTime)
+        offset-p4a
       }else{
-        breaker.getPosition4Animation(offsetTime) + offset
+        p4a + offset
       }
-      val gunPositionList = breaker.getGunPositions4Animation().map(t => (if(up) p-t else t+p) * canvasUnit)
-      ctx.beginPath()
-      ctx.moveTo(gunPositionList.last.x, gunPositionList.last.y)
-      gunPositionList.foreach(t => ctx.lineTo(t.x, t.y))
-      ctx.setFill("#7A7A7A")
-      ctx.setStrokeStyle("#636363")
-      ctx.fill()
-      ctx.setLineWidth(0.4 * canvasUnit)
-      ctx.stroke()
-      ctx.closePath()
 
-      ctx.beginPath()
-      ctx.setLineWidth( 0.4 * canvasUnit)
-      if(breaker.getBulletSize()>0) ctx.setStrokeStyle("#4EEE94") else ctx.setStrokeStyle("#636363")
-      val centerX = p.x * canvasUnit
-      val centerY = p.y * canvasUnit
-      val radius =  (config.breakWidth / 2) * canvasUnit
-      val startAngle = 0
-      val lengthAngle = 360
-      ctx.arc(centerX.toFloat, centerY.toFloat, radius, startAngle.toFloat, lengthAngle.toFloat)
-      ctx.setFill(if(breaker.getBulletSize()>0) "#4EEE94" else "#636363")
-      ctx.fill()
-      ctx.stroke()
-      ctx.closePath()
-      ctx.setGlobalAlpha(1)
-     val breakImg = if(breaker.up) blueTank else redTank
-      ctx.drawImage(breakImg, (p.x-breaker.getWidth / 2) * canvasUnit, (p.y-breaker.getHeight / 2) * canvasUnit,
-        Some(breaker.getWidth * canvasUnit, breaker.getHeight * canvasUnit))
+      roomType match {
+        case RoomType.cooperation=>
+          val breakImg = if(breaker.breakId==myBreakId) blueTank else redTank
+          ctx.drawImage(breakImg, (p.x-breaker.getWidth / 2) * canvasUnit, (p.y-breaker.getHeight / 2) * canvasUnit,
+            Some(breaker.getWidth * canvasUnit, breaker.getHeight * canvasUnit))
+        case RoomType.confrontation=>
+          val gunPositionList = breaker.getGunPositions4Animation().map(t => (if(up) p-t else t+p) * canvasUnit)
+          ctx.beginPath()
+          ctx.moveTo(gunPositionList.last.x, gunPositionList.last.y)
+          gunPositionList.foreach(t => ctx.lineTo(t.x, t.y))
+          ctx.setFill("#7A7A7A")
+          ctx.setStrokeStyle("#636363")
+          ctx.fill()
+          ctx.setLineWidth(0.4 * canvasUnit)
+          ctx.stroke()
+          ctx.closePath()
+
+          ctx.beginPath()
+          ctx.setLineWidth( 0.4 * canvasUnit)
+          if(breaker.getBulletSize()>0) ctx.setStrokeStyle("#4EEE94") else ctx.setStrokeStyle("#636363")
+          val centerX = p.x * canvasUnit
+          val centerY = p.y * canvasUnit
+          val radius =  (breaker.getWidth / 2) * canvasUnit
+          val startAngle = 0
+          val lengthAngle = 360
+          ctx.arc(centerX.toFloat, centerY.toFloat, radius, startAngle.toFloat, lengthAngle.toFloat)
+          ctx.setFill(if(breaker.getBulletSize()>0) "#4EEE94" else "#636363")
+          ctx.fill()
+          ctx.stroke()
+          ctx.closePath()
+          ctx.setGlobalAlpha(1)
+
+          val breakImg = if(breaker.up) blueTank else redTank
+          ctx.drawImage(breakImg, (p.x-breaker.getWidth / 2) * canvasUnit, (p.y-breaker.getHeight / 2) * canvasUnit,
+            Some(breaker.getWidth * canvasUnit, breaker.getHeight * canvasUnit))
+      }
 
       breaker.getExpression.foreach{e=>
         if(e._1>systemFrame-GameAnimation.talkAnimationFrame){
-          val pos=Point((p.x+breaker.getWidth / 2) * canvasUnit, (p.y-breaker.getHeight) * canvasUnit)
+          val pos=Point((p.x+breaker.getWidth / 2) * canvasUnit, (p.y-5) * canvasUnit)
           ctx.drawImage(talkImg, pos.x,pos.y,
-            Some(breaker.getWidth*5 * canvasUnit, breaker.getHeight*2 * canvasUnit))
+            Some(30 * canvasUnit, 10 * canvasUnit))
 
           e._2 match {
             case ExpressionMap.e0=>
@@ -81,7 +91,7 @@ trait BreakerDrawUtil {this:GameContainerClientImpl =>
               ctx.closePath()
             case _=>
               ctx.drawImage(expressionInfoCacheMap.getOrElseUpdate(e._2,generateExpCacheCanvas(e._2)), pos.x+2*canvasUnit, (p.y-breaker.getHeight / 2) * canvasUnit,
-                Some(breaker.getWidth * canvasUnit, breaker.getHeight * canvasUnit))
+                Some(6 * canvasUnit, 6 * canvasUnit))
           }
         }
       }

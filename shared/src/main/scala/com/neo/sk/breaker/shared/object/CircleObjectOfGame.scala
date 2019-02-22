@@ -36,7 +36,7 @@ trait CircleObjectOfGame extends ObjectOfGame{
     * @param o 其他物体
     * @return  如果碰撞，返回true；否则返回false
     */
-  override def isIntersects(o: ObjectOfGame): Boolean = {
+  override def isIntersects(o: ObjectOfGame): (Boolean,Boolean) = {
     o match {
       case t:CircleObjectOfGame => isIntersects(t)
       case t:RectangleObjectOfGame => isIntersects(t)
@@ -44,11 +44,11 @@ trait CircleObjectOfGame extends ObjectOfGame{
   }
 
 
-  private def isIntersects(o: CircleObjectOfGame): Boolean = {
-    this.position.distance(o.position) < o.radius + this.radius
+  private def isIntersects(o: CircleObjectOfGame): (Boolean,Boolean) = {
+    (this.position.distance(o.position) < o.radius + this.radius,false)
   }
 
-  private def isIntersects(o: RectangleObjectOfGame): Boolean = {
+  private def isIntersects(o: RectangleObjectOfGame): (Boolean,Boolean) = {
     o.isIntersects(this)
   }
 

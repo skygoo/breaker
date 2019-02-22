@@ -10,7 +10,7 @@ import com.neo.sk.breaker.shared.model.Point
   * 空投（包含随机道具）
   * 砖头（可被子弹打碎）
   */
-case class ObstacleState(oId:Int,t:Byte,pt:Option[Byte],b:Option[Int],p:Point)
+case class ObstacleState(oId:Int,t:Byte,pos:Byte,pt:Option[Byte],b:Option[Int],p:Point)
 
 /**
   * @author sky
@@ -34,7 +34,7 @@ trait Obstacle extends RectangleObjectOfGame{
   def isLived():Boolean
 
   final def isIntersectsObject(o:Seq[ObjectOfGame]):Boolean = {
-    o.exists(t => t.isIntersects(this))
+    o.exists(t => t.isIntersects(this)._1)
   }
 
   def getCurBlood():Int

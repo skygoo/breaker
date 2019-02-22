@@ -40,6 +40,8 @@ trait BreakGameConfig {
 
   val boundary: Point
 
+  val gridColumn:Int
+
   val obstacleWidth: Float
 
   val obstacleWO: Float
@@ -52,11 +54,17 @@ trait BreakGameConfig {
 
   val brickNum: Int
 
-  val breakWidth:Float
+  val breakWidth1:Float
 
-  val breakHeight:Float
+  val breakHeight1:Float
+
+  val breakWidth2:Float
+
+  val breakHeight2:Float
 
   val breakBallLimit:Int
+
+  val breakSpeed:Int
 
   val breakGunWidth:Float
 

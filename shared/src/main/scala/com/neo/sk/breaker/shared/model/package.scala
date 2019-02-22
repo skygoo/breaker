@@ -69,6 +69,88 @@ package object model {
 
   }
 
+  case class Segment(){
+
+    //以一般式构造直线：Ax + By + C = 0
+    private var A: Double = 1
+    private var B: Double = 1
+    private var C: Double = 1
+    private var PosMin:Point =Point(0,0)
+    private var PosMax:Point =Point(0,0)
+    private var XRange: Option[(Double, Double)] = None
+
+    //一般式构造直线
+    def this(A: Double, B: Double, C: Double) {
+      this()
+      this.A = A
+      this.B = B
+      this.C = C
+    }
+
+    //两点式构造直线
+    def this(P1: Point, P2: Point) {
+      this()
+      this.A = P2.y - P1.y
+      this.B = P1.x - P2.x
+      this.C = P1.y * P2.x - P2.y * P1.x
+      this.XRange = Some(math.min(P1.x, P2.x), math.max(P1.x, P2.x))
+      if(P1.x>P2.x){
+        PosMin=P2
+        PosMax=P1
+      }else{
+        PosMin=P1
+        PosMax=P2
+      }
+    }
+
+    //点斜式构造直线
+    def this(K: Double, P: Point) {
+      this()
+      this.A = K
+      this.B = -1
+      this.C = P.y - K * P.x
+    }
+
+    def printSegment = s"${A}x + ${B}y + $C = 0"
+
+    //获取斜率
+    def getSlope: Double ={
+      - (A / B)
+    }
+
+    //点在直线的哪一边
+    //B<0时, true: 上边, false: 下边
+    def directionFromPoint(P: Point): Boolean ={
+      if(B>0){
+        (A * P.x + B * P.y + C)<0
+      }else{
+        (A * P.x + B * P.y + C)>0
+      }
+    }
+
+    //点到直线的距离
+    def distanceFromPoint(P: Point): Double = {
+      XRange match {
+        case None =>
+          math.abs((A * P.x + B * P.y + C) / math.sqrt(A * A + B * B))
+        case Some((min, max)) =>
+          //求出最近的点
+          val footDrop = Point(((B * B * P.x - A * B * P.y - A * C) / (A * A + B * B)).toFloat, ((A * A * P.y - A * B * P.x - B * C) / (A * A + B * B)).toFloat)
+          if(footDrop.x >= min && footDrop.x <= max)
+            math.abs((A * P.x + B * P.y + C) / math.sqrt(A * A + B * B))
+          else if(footDrop.x > max) {
+            val point = PosMax
+            P.distance(point)
+          } else{
+            val point = PosMin
+            P.distance(point)
+          }
+
+      }
+    }
+  }
+
+
   trait Shape {
     protected var position: Point
 
@@ -88,8 +170,6 @@ package object model {
           intersects(t)
         case t:Circle=>
           intersects(t)
-        case t:Triangle=>
-          intersects(t)
         case _ =>
           false
       }
@@ -117,15 +197,6 @@ package object model {
         val dy1 = math.max(dy, -height / 2)
         Point(dx1, dy1).distance(relativeCircleCenter) < r.r
       }
-    }
-
-    def intersects(r: Triangle): Boolean = {
-      val (rx, rw, ry, rh) = (r.topLeft.x, r.downRight.x, r.topLeft.y, r.downRight.y)
-      val (tx, tw, ty, th) = (topLeft.x, downRight.x, topLeft.y, downRight.y)
-      (rw < rx || rw > tx) &&
-        (rh < ry || rh > ty) &&
-        (tw < tx || tw > rx) &&
-        (th < ty || th > ry)
     }
   }
 
@@ -138,7 +209,6 @@ package object model {
       o match {
         case t: Rectangle => intersects(t)
         case t: Circle => intersects(t)
-        case t:Triangle=> intersects(t)
       }
     }
 
@@ -148,62 +218,6 @@ package object model {
 
     def intersects(r: Circle): Boolean = {
       r.center.distance(this.center) <= (r.r + this.r)
-    }
-
-    def intersects(triangle: model.Triangle):Boolean={
-      triangle.intersects(this)
-    }
-  }
-
-  /**
-    * 三角形，目前检测与矩形相同*/
-  case class Triangle(topLeft: Point, downRight: Point, `type`: Byte) extends Shape {
-    override protected var position: Point = (topLeft + downRight) / 2
-    private val width: Float = math.abs(downRight.x - topLeft.x)
-    private val height: Float = math.abs(downRight.y - topLeft.y)
-
-
-    override def isIntersects(o: Shape): Boolean = {
-      o match {
-        case t: Triangle =>
-          intersects(t)
-
-        case _ =>
-          false
-      }
-    }
-
-    def intersects(r: Triangle): Boolean = {
-      val (rx, rw, ry, rh) = (r.topLeft.x, r.downRight.x, r.topLeft.y, r.downRight.y)
-      val (tx, tw, ty, th) = (topLeft.x, downRight.x, topLeft.y, downRight.y)
-      (rw < rx || rw > tx) &&
-        (rh < ry || rh > ty) &&
-        (tw < tx || tw > rx) &&
-        (th < ty || th > ry)
-    }
-
-    def intersects(r: Rectangle): Boolean = {
-      val (rx, rw, ry, rh) = (r.topLeft.x, r.downRight.x, r.topLeft.y, r.downRight.y)
-      val (tx, tw, ty, th) = (topLeft.x, downRight.x, topLeft.y, downRight.y)
-
-
-      (rw < rx || rw > tx) &&
-        (rh < ry || rh > ty) &&
-        (tw < tx || tw > rx) &&
-        (th < ty || th > ry)
-    }
-
-    def intersects(r: Circle): Boolean = {
-      if (r.center > topLeft && r.center < downRight) {
-        true
-      } else {
-        val relativeCircleCenter: Point = r.center - position
-        val dx = math.min(relativeCircleCenter.x, width / 2)
-        val dx1 = math.max(dx, -width / 2)
-        val dy = math.min(relativeCircleCenter.y, height / 2)
-        val dy1 = math.max(dy, -height / 2)
-        Point(dx1, dy1).distance(relativeCircleCenter) < r.r
-      }
     }
   }
 

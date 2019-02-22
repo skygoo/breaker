@@ -9,6 +9,12 @@ import scala.util.Random
   */
 object Constants {
 
+  val userType=1
+  val adminType=2
+
+  val stateAllow=1
+  val stateForbid=2
+
   object DirectionType {
     final val right:Float = 0
     final val left = math.Pi

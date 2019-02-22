@@ -7,7 +7,7 @@ import com.neo.sk.breaker.shared.model.Point
   * Date on 2019/2/13
   * Time at 下午4:16
   */
-final case class GridBoundary(width: Int, height: Int) {
+final case class GridBoundary(width: Int, height: Int, column:Int) {
   def getBoundary: Point = Point(width, height)
 }
 
@@ -23,12 +23,15 @@ final case class BreakerMoveSpeed(
 
 final case class BreakerParameters(
                                     //                                    breakSpeed: BreakerMoveSpeed,
-                                    breakWidth: Float,
-                                    breakHeight: Float,
+                                    breakWidth1: Float,
+                                    breakHeight1: Float,
+                                    breakWidth2: Float,
+                                    breakHeight2: Float,
                                     breakGunWidth: Float,
                                     breakGunHeight: Float,
                                     fillBulletFrame: Int,
-                                    bulletLimit:Int
+                                    bulletLimit:Int,
+                                    breakSpeed:Int
                                   )
 
 final case class PropParameters(
@@ -97,6 +100,8 @@ case class BreakGameConfigImpl(
 
   val boundary: Point = gridBoundary.getBoundary
 
+  val gridColumn:Int = gridBoundary.column
+
   val obstacleWidth: Float = obstacleParameters.width
 
   val obstacleWO: Float = obstacleParameters.collisionWidthOffset
@@ -111,13 +116,19 @@ case class BreakGameConfigImpl(
 
   override val breakGunWidth: Float = breakerParameters.breakGunWidth
 
-  override val breakWidth: Float = breakerParameters.breakWidth
+  override val breakWidth1: Float = breakerParameters.breakWidth1
 
-  override val breakHeight: Float = breakerParameters.breakHeight
+  override val breakHeight1: Float = breakerParameters.breakHeight1
+
+  override val breakWidth2: Float = breakerParameters.breakWidth2
+
+  override val breakHeight2: Float = breakerParameters.breakHeight2
 
   override val breakGunHeight: Float = breakerParameters.breakGunHeight
 
   override val fillBallFrame: Int = breakerParameters.fillBulletFrame
 
   override val breakBallLimit: Int = breakerParameters.bulletLimit
+
+  override val breakSpeed: Int = breakerParameters.breakSpeed
 }

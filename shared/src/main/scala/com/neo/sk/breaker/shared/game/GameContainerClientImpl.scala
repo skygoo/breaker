@@ -17,6 +17,7 @@ import scala.collection.mutable
   */
 case class GameContainerClientImpl(
                                     config: BreakGameConfig,
+                                    roomType:Byte,
                                     drawFrame: MiddleFrame,
                                     ctx: MiddleContext,
                                     myId: String,

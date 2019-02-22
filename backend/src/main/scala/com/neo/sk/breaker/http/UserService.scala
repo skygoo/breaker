@@ -11,18 +11,19 @@ import akka.http.scaladsl.server
 import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
 import akka.util.Timeout
-import com.neo.sk.breaker.common.{AppSettings, Constants}
+import com.neo.sk.breaker.common.AppSettings
 import akka.actor.typed.scaladsl.AskPattern._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import com.neo.sk.breaker.Boot.{executor, scheduler, timeout}
 import com.neo.sk.breaker.core.UserManager
-import com.neo.sk.breaker.http.SessionBase.SessionCombine
+import com.neo.sk.breaker.http.SessionBase.{SessionCombine, SessionKeys}
 import com.neo.sk.breaker.models.DAO.{SignUserInfo, UserInfoDAO}
 import com.neo.sk.breaker.shared.ptcl.{ErrorRsp, SuccessRsp}
 import io.circe._
 import org.slf4j.LoggerFactory
 import com.neo.sk.breaker.protocol.CommonErrorCode.parseJsonError
+import com.neo.sk.breaker.shared.model.Constants
 import com.neo.sk.breaker.shared.protocol.UserProtocol.{GetUserInfoRsp, UserLoginReq, UserSignReq}
 /**
   * Created by sky
@@ -104,6 +105,16 @@ trait UserService extends ServiceUtils {
     }
   }
 
+  val logout = (path("logout") & get){
+    authUser { u =>
+      val session = Set(SessionKeys.accountType,SessionKeys.accountId,SessionKeys.timestamp)
+      removeSession(session){ctx =>
+        log.info(s"user-----${u.id}----logout")
+        ctx.complete(SuccessRsp())
+      }
+    }
+  }
+
   val getUserInfo = (path("getUserInfo") & get){
     authUser{u=>
       complete(GetUserInfoRsp(Some(u.userType),Some(u.id)))
@@ -111,6 +122,6 @@ trait UserService extends ServiceUtils {
   }
 
   val userRoutes = pathPrefix("user") {
-    login ~ sign
+    login ~ logout ~ sign ~ getUserInfo
   }
 }

@@ -33,7 +33,7 @@ trait ObjectOfGame {
    * @param o 其他物体
    * @return  如果碰撞，返回true；否则返回false
    */
-  def isIntersects(o: ObjectOfGame): Boolean
+  def isIntersects(o: ObjectOfGame): (Boolean,Boolean)
 
 
 }

@@ -13,11 +13,12 @@ import com.neo.sk.breaker.shared.model.Point
 case class Wall (
              config:BreakGameConfig,
              override val oId: Int,
+             override val pos: Byte,
              override protected var position: Point,
            ) extends Obstacle with ObstacleBreak with ObstacleBall {
 
   def this(config: BreakGameConfig,obstacleState: ObstacleState){
-    this(config,obstacleState.oId,obstacleState.p)
+    this(config,obstacleState.oId,obstacleState.pos,obstacleState.p)
   }
 
   override val obstacleType = ObstacleType.wall
@@ -25,7 +26,7 @@ case class Wall (
   override protected val width: Float = config.obstacleWidth
   override protected val collisionOffset: Float = config.obstacleWO
 
-  override def getObstacleState():ObstacleState = ObstacleState(oId,obstacleType,None,None,position)
+  override def getObstacleState():ObstacleState = ObstacleState(oId,obstacleType,pos,None,None,position)
 
   override def attackDamage(d: Int): Unit = {}
 

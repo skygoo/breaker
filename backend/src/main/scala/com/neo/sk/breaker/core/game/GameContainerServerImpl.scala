@@ -8,10 +8,10 @@ import com.neo.sk.breaker.protocol.ActorProtocol
 import com.neo.sk.breaker.shared.`object`._
 import com.neo.sk.breaker.shared.game.GameContainer
 import com.neo.sk.breaker.shared.game.config.{BreakGameConfig, BreakGameConfigImpl}
-import com.neo.sk.breaker.shared.model.Constants.{ObstacleType, PropType}
+import com.neo.sk.breaker.shared.model.Constants.{ObstacleType, PropType, RoomType}
 import com.neo.sk.breaker.shared.model.{Constants, Point}
 import com.neo.sk.breaker.shared.protocol.BreakerEvent
-import com.neo.sk.breaker.shared.protocol.BreakerEvent.{GameOver, UserJoinRoom, UserLeftRoom}
+import com.neo.sk.breaker.shared.protocol.BreakerEvent.{GameOver, UserLeftRoom}
 import org.slf4j.Logger
 
 import scala.util.Random
@@ -23,6 +23,7 @@ import scala.collection.mutable
   */
 case class GameContainerServerImpl(
                                     config:BreakGameConfig,
+                                    roomType:Byte,
                                     log: Logger,
                                     roomActorRef: ActorRef[RoomActor.Command],
                                     dispatch: BreakerEvent.WsMsgServer => Unit,
@@ -46,24 +47,6 @@ case class GameContainerServerImpl(
   val xPosition=boundary.x/(config.totalColumn+4)
   val yPosition=boundary.y/(config.totalWallRow+4)
 
-  protected def handleUserJoinRoomEvent(e:UserJoinRoom) :Unit = {
-    //    println(s"-------------------处理用户加入房间事件")
-    val breaker : BreakState = e.tankState
-    breakMap.put(e.tankState.breakId,breaker)
-    quadTree.insert(breaker)
-  }
-
-  final protected def handleUserJoinRoomEvent(l:List[UserJoinRoom]) :Unit = {
-    l foreach handleUserJoinRoomEvent
-  }
-
-  //fixme 前后端不同的执行
-  protected def handleUserJoinRoomEventNow() = {
-    gameEventMap.get(systemFrame).foreach{ events =>
-      handleUserJoinRoomEvent(events.filter(_.isInstanceOf[UserJoinRoom]).map(_.asInstanceOf[UserJoinRoom]).reverse)
-    }
-  }
-
   private def genObstaclePositionRandom(row:Int): List[(Int,Point)] = {
     val value=mutable.HashSet[Int]()
     for(i <- config.brickColumn until config.totalColumn){
@@ -84,17 +67,18 @@ case class GameContainerServerImpl(
 
   private def generateAirDrop(position:Point) = {
     val oId = obstacleIdGenerator.getAndIncrement()
-    PropBox(config, oId, position, random.nextInt(config.propMaxBlood)+1, Some(random.nextInt(Constants.PropType.typeSize).toByte))
+    PropBox(config, oId, 0, position, random.nextInt(config.propMaxBlood)+1, Some(random.nextInt(Constants.PropType.typeSize).toByte))
   }
 
-  private def generateBrick(position:Point) = {
+  private def generateBrick(randPos:Byte,position:Point) = {
     val oId = obstacleIdGenerator.getAndIncrement()
-    Brick(config, oId, position, random.nextInt(config.propMaxBlood)+1)
+    val pos=if(randPos>4) 0 else randPos
+    Brick(config, oId, pos.toByte, position, random.nextInt(config.propMaxBlood)+1)
   }
 
   private def generateWall(position:Point) = {
     val oId = obstacleIdGenerator.getAndIncrement()
-    Wall(config, oId, position)
+    Wall(config, oId,0, position)
   }
 
   private def generateObstacle(plist:List[(Int,Point)]) = {
@@ -117,7 +101,7 @@ case class GameContainerServerImpl(
       }
     }
     pList.foreach { p =>
-      val obstacle = generateBrick(p._2)
+      val obstacle = generateBrick(random.nextInt(10).toByte,p._2)
       val event = BreakerEvent.GenerateObstacle(systemFrame+1, obstacle.getObstacleState())
       addGameEvent(event)
       dispatch(event)
@@ -146,7 +130,7 @@ case class GameContainerServerImpl(
       quadTree.insert(obstacle)
     }
     pList.foreach { p =>
-      val obstacle = generateBrick(p._2)
+      val obstacle = generateBrick(random.nextInt(10).toByte,p._2)
       val event = BreakerEvent.GenerateObstacle(systemFrame, obstacle.getObstacleState())
       addGameEvent(event)
       positionList.get(p._1) match {
@@ -168,6 +152,15 @@ case class GameContainerServerImpl(
       obstacle = generateWall(Point(boundary.x-config.obstacleWidth/2,yPosition*i+config.obstacleWidth/2))
       environmentMap.put(obstacle.oId, obstacle)
       quadTree.insert(obstacle)
+    }
+    roomType match {
+      case RoomType.cooperation=>
+        for(i <- 1 until config.gridColumn){
+          val obstacle = generateWall(Point(config.obstacleWidth/2+config.obstacleWidth*i,yPosition*2+config.obstacleWidth/2))
+          environmentMap.put(obstacle.oId, obstacle)
+          quadTree.insert(obstacle)
+        }
+      case RoomType.confrontation=>
     }
   }
 
@@ -200,6 +193,12 @@ case class GameContainerServerImpl(
       case a: BreakerEvent.UserMouseClick =>
         addUserAction(a.copy(frame = f))
         a.copy(frame = f)
+      case a: BreakerEvent.UserPressKeyDown =>
+        addUserAction(a.copy(frame = f))
+        a.copy(frame = f)
+      case a: BreakerEvent.UserPressKeyUp =>
+        addUserAction(a.copy(frame = f))
+        a.copy(frame = f)
       case a: BreakerEvent.Expression =>
         a.copy(frame = f)
     }
@@ -207,29 +206,38 @@ case class GameContainerServerImpl(
     dispatch(action)
   }
 
-  private def genABreaker(playerId:String,breakId:Int,nickName:String,up:Boolean)={
-    val position=if(up){
-      Point(boundary.x.toInt/2,yPosition)
-    }else{
-      Point(boundary.x.toInt/2,boundary.y-yPosition)
+  private def genABreaker(playerId:String,breakId:Int,nickName:String,position:Point)={
+    roomType match {
+      case RoomType.confrontation =>
+        val breaker=Breaker(config,playerId,breakId,nickName,config.breakWidth1,config.breakHeight1,position)
+        breakMap.put(breakId,breaker)
+        quadTree.insert(breaker)
+      case RoomType.cooperation =>
+        val breaker=Breaker(config,playerId,breakId,nickName,config.breakWidth2,config.breakHeight2,position)
+        breakMap.put(breakId,breaker)
+        quadTree.insert(breaker)
     }
-    val event = BreakerEvent.UserJoinRoom(BreakState(playerId,breakId,nickName,position), systemFrame)
-    dispatch(event)
-    addGameEvent(event)
   }
 
   def startGame={
     if(justJoinUser.size==2){
-      var user=justJoinUser.head
-      genABreaker(user._1,user._3,user._2,true)
-      user=justJoinUser.reverse.head
-      genABreaker(user._1,user._3,user._2,false)
+      roomType match {
+        case RoomType.confrontation=>
+          var user=justJoinUser.head
+          genABreaker(user._1,user._3,user._2,Point(boundary.x.toInt/2,yPosition))
+          user=justJoinUser.reverse.head
+          genABreaker(user._1,user._3,user._2,Point(boundary.x.toInt/2,boundary.y-yPosition))
+        case RoomType.cooperation=>
+          var user=justJoinUser.head
+          genABreaker(user._1,user._3,user._2,Point(config.breakWidth2,boundary.y-yPosition))
+          user=justJoinUser.reverse.head
+          genABreaker(user._1,user._3,user._2,Point(boundary.x-config.breakWidth2,boundary.y-yPosition))
+      }
     }
-    handleUserJoinRoomEventNow()
     breakMap.foreach{b=>
       justJoinUser.find(_._1==b._2.playerId) match {
         case Some(value)=>
-          value._4 ! ActorProtocol.JoinRoomSuccess(b._2,config.asInstanceOf[BreakGameConfigImpl],roomActorRef)
+          value._4 ! ActorProtocol.JoinRoomSuccess(b._2,config.asInstanceOf[BreakGameConfigImpl],roomType,roomActorRef)
         case None=>
           log.error("user join error")
       }
@@ -294,74 +302,91 @@ case class GameContainerServerImpl(
     }
   }
 
+
+
   protected def handleGenerateBrickNow()={
-    positionList.get(upLine) match {
-      case Some(value)=>
-        if(value.isEmpty){
-          positionList.remove(upLine)
-          upLine+=1
-          downLine+=1
-          if(downLine>=config.totalWallRow){
-            breakMap.find(_._2.up).foreach{ b=>
-              val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
-              addGameEvent(event)
-              dispatch(event)
+    roomType match {
+      case RoomType.confrontation=>
+        positionList.get(upLine) match {
+          case Some(value)=>
+            if(value.isEmpty){
+              positionList.remove(upLine)
+              upLine+=1
+              downLine+=1
+              if(downLine>=config.totalWallRow){
+                breakMap.find(_._2.up).foreach{ b=>
+                  val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
+                  addGameEvent(event)
+                  dispatch(event)
+                }
+              }else{
+                generateObstacle(genObstaclePositionRandom(downLine))
+              }
             }
-          }else{
-            generateObstacle(genObstaclePositionRandom(downLine))
-          }
-        }
-      case None=>
-        upLine+=1
-        downLine+=1
-        if(downLine>=config.totalWallRow){
-          breakMap.find(_._2.up).foreach{ b=>
-            val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
-            addGameEvent(event)
-            dispatch(event)
-          }
-        }else{
-          generateObstacle(genObstaclePositionRandom(downLine))
-        }
-    }
-    positionList.get(downLine) match {
-      case Some(value)=>
-        if(value.isEmpty){
-          positionList.remove(downLine)
-          upLine-=1
-          downLine-=1
-          if(upLine<0){
-            breakMap.find(!_._2.up).foreach{ b=>
-              val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
-              addGameEvent(event)
-              dispatch(event)
+          case None=>
+            upLine+=1
+            downLine+=1
+            if(downLine>=config.totalWallRow){
+              breakMap.find(_._2.up).foreach{ b=>
+                val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
+                addGameEvent(event)
+                dispatch(event)
+              }
+            }else{
+              generateObstacle(genObstaclePositionRandom(downLine))
             }
-          }else{
-            generateObstacle(genObstaclePositionRandom(upLine))
-          }
         }
-      case None=>
-        upLine-=1
-        downLine-=1
-        if(upLine<0){
-          breakMap.find(!_._2.up).foreach{ b=>
-            val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
-            addGameEvent(event)
-            dispatch(event)
+        positionList.get(downLine) match {
+          case Some(value)=>
+            if(value.isEmpty){
+              positionList.remove(downLine)
+              upLine-=1
+              downLine-=1
+              if(upLine<0){
+                breakMap.find(!_._2.up).foreach{ b=>
+                  val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
+                  addGameEvent(event)
+                  dispatch(event)
+                }
+              }else{
+                generateObstacle(genObstaclePositionRandom(upLine))
+              }
+            }
+          case None=>
+            upLine-=1
+            downLine-=1
+            if(upLine<0){
+              breakMap.find(!_._2.up).foreach{ b=>
+                val event=BreakerEvent.GameOver(b._2.breakId,systemFrame+1)
+                addGameEvent(event)
+                dispatch(event)
+              }
+            }else{
+              generateObstacle(genObstaclePositionRandom(upLine))
+            }
+        }
+
+      case RoomType.cooperation=>
+        if(ballMap.isEmpty){
+//          val momentum = config.ballSpeed.rotate(1.1f) * config.frameDuration / 1000
+//          val ballState = BallState(ballIdGenerator.getAndIncrement(), breakMap.head._1, position, damage.toByte, momentum)
+//          transformGenerateBulletEvent(ballState)
+        }
+        positionList.foreach{l=>
+          if(l._2.isEmpty){
+            generateObstacle(genObstaclePositionRandom(l._1))
           }
-        }else{
-          generateObstacle(genObstaclePositionRandom(upLine))
         }
     }
   }
 
+  protected def transformGenerateBulletEvent(ballState: BallState, s:Boolean=true) = {
+    val event = BreakerEvent.GenerateBall(systemFrame, ballState, s)
+    dispatch(event)
+    addGameEvent(event)
+  }
 
   override def tankExecuteLaunchBulletAction(breaker: Breaker): Unit = {
-    def transformGenerateBulletEvent(ballState: BallState, s:Boolean=true) = {
-      val event = BreakerEvent.GenerateBall(systemFrame, ballState, s)
-      dispatch(event)
-      addGameEvent(event)
-    }
     breaker.launchBullet() match {
       case Some((bulletDirection, position, damage)) =>
         val momentum = config.ballSpeed.rotate(bulletDirection) * config.frameDuration / 1000
