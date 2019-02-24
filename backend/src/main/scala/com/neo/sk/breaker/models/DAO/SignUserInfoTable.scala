@@ -2,6 +2,7 @@ package com.neo.sk.breaker.models.DAO
 
 import scala.concurrent.Future
 import com.neo.sk.breaker.Boot.executor
+import com.neo.sk.breaker.shared.protocol.UserProtocol.{GetUserListReq,ShowUserInfo}
 /**
   * copy from dry on 2018/10/24.
   *
@@ -61,8 +62,26 @@ object UserInfoDAO extends SignUserInfoTable {
     db.run(userInfoTableQuery.filter(m => m.userId===userId).map(m => m.state).update(state))
   }
 
-  def main(args: Array[String]): Unit = {
-    create()
-    Thread.sleep(2000)
+  def updateListInfo(l:Set[String],s:Int)={
+    db.run(userInfoTableQuery.filter(m => m.userId.inSet(l)).map(m => m.state).update(s))
   }
+
+  def getListNumByState(state:Option[Int])={
+    val action=if (state.isEmpty) {
+      userInfoTableQuery.size
+    } else {
+      userInfoTableQuery.filter(r => r.state === state.get).size
+    }
+    db.run(action.result)
+  }
+
+  def getUserList(req:GetUserListReq) = {
+    val action=if (req.state.isEmpty) {
+      userInfoTableQuery.sortBy(_.createTime).drop((req.page - 1) * req.pageNum).take(req.pageNum).map(u => (u.userId,u.mail,u.state,u.createTime))
+    } else {
+      userInfoTableQuery.filter(r => r.state === req.state.get).sortBy(_.createTime).drop((req.page - 1) * req.pageNum).take(req.pageNum).map(u => (u.userId,u.mail,u.state,u.createTime))
+    }
+    db.run(action.result)
+  }
+
 }

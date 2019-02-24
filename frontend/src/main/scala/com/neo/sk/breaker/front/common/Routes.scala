@@ -48,6 +48,20 @@ object Routes {
 
     val getUserInfo = userBase + "/getUserInfo"
 
+    val getUserList = userBase +"/getUserList"
+
+    val addState4User = userBase +"/addState4User"
+  }
+
+  object Admin {
+    val userBase = base + "/admin"
+
+    val login = userBase + "/login"
+
+    val logout = userBase + "/logout"
+
+    val getUserInfo = userBase + "/getUserInfo"
+
   }
 
 

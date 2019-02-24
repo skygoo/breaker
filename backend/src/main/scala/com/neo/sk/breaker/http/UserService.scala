@@ -22,9 +22,9 @@ import com.neo.sk.breaker.models.DAO.{SignUserInfo, UserInfoDAO}
 import com.neo.sk.breaker.shared.ptcl.{ErrorRsp, SuccessRsp}
 import io.circe._
 import org.slf4j.LoggerFactory
-import com.neo.sk.breaker.protocol.CommonErrorCode.parseJsonError
+import com.neo.sk.breaker.protocol.CommonErrorCode.{parseJsonError, userAuthError}
 import com.neo.sk.breaker.shared.model.Constants
-import com.neo.sk.breaker.shared.protocol.UserProtocol.{GetUserInfoRsp, UserLoginReq, UserSignReq}
+import com.neo.sk.breaker.shared.protocol.UserProtocol._
 /**
   * Created by sky
   * Date on 2019/2/21
@@ -105,7 +105,7 @@ trait UserService extends ServiceUtils {
     }
   }
 
-  val logout = (path("logout") & get){
+  private val logout = (path("logout") & get){
     authUser { u =>
       val session = Set(SessionKeys.accountType,SessionKeys.accountId,SessionKeys.timestamp)
       removeSession(session){ctx =>
@@ -115,13 +115,61 @@ trait UserService extends ServiceUtils {
     }
   }
 
-  val getUserInfo = (path("getUserInfo") & get){
+  private val getUserInfo = (path("getUserInfo") & get){
     authUser{u=>
       complete(GetUserInfoRsp(Some(u.userType),Some(u.id)))
     }
   }
 
+  private val getUserList = (path("getUserList") & post){
+    authUser{u=>
+      if(u.userType==Constants.adminType){
+        entity(as[Either[Error, GetUserListReq]]) {
+          case Right(req) =>
+            dealFutureResult(
+              for {
+                list <- UserInfoDAO.getUserList(req)
+                num <- if (req.page == 1) UserInfoDAO.getListNumByState(req.state).map(Some(_)) else Future.successful(None)
+              } yield {
+                val data = list.map(u => ShowUserInfo(u._1, u._2, u._3,u._4))
+                complete(GetUserListRsp(num, Some(data.toList)))
+              }
+            )
+          case Left(e) =>
+            log.error(s"json parse error: $e")
+            complete(parseJsonError)
+        }
+      }else{
+        complete(userAuthError)
+      }
+    }
+  }
+
+  private val addState4User = (path("addState4User") & post){
+    authUser{u=>
+      if(u.userType==Constants.adminType){
+        entity(as[Either[Error, AddState4UserReq]]) {
+          case Right(req) =>
+            dealFutureResult(
+              UserInfoDAO.updateListInfo(req.user.toSet,req.state).map{r=>
+                if(r>0){
+                  complete(SuccessRsp())
+                }else{
+                  complete(ErrorRsp(10012,s"更新失败"))
+                }
+              }
+            )
+          case Left(e) =>
+            log.error(s"json parse error: $e")
+            complete(parseJsonError)
+        }
+      }else{
+        complete(userAuthError)
+      }
+    }
+  }
+
   val userRoutes = pathPrefix("user") {
-    login ~ logout ~ sign ~ getUserInfo
+    login ~ logout ~ sign ~ getUserInfo ~ getUserList ~ addState4User
   }
 }

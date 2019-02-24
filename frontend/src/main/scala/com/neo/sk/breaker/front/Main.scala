@@ -1,6 +1,6 @@
 package com.neo.sk.breaker.front
 
-import com.neo.sk.breaker.front.pages.{LoginPage, MainPage}
+import com.neo.sk.breaker.front.pages.{AdminLoginPage, LoginPage, MainPage}
 
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 
@@ -12,10 +12,9 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 @JSExportTopLevel("front.Main")
 object Main {
 
-
   @JSExport
   def run(): Unit = {
-    LoginPage.getUserInfo()
+    MainPage.getUserInfo()
     MainPage.show()
   }
 

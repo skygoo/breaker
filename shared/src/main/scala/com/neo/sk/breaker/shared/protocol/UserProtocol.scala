@@ -33,4 +33,29 @@ object UserProtocol {
                              msg: String = "ok"
                            ) extends CommonRsp
 
+  case class GetUserListReq(
+                             state: Option[Int],
+                             page: Int,
+                             pageNum: Int
+                           )
+
+  case class ShowUserInfo(
+                           userId: String,
+                           mail: String,
+                           state:Int,
+                           createTime: Long
+                         )
+
+  case class GetUserListRsp(
+                             totalPage: Option[Int],
+                             data: Option[List[ShowUserInfo]],
+                             errCode: Int = 0,
+                             msg: String = "ok"
+                           ) extends CommonRsp
+
+  case class AddState4UserReq(
+                          user:List[String],
+                          state:Int
+                          )
+
 }

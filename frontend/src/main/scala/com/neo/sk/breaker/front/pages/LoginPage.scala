@@ -45,16 +45,6 @@ object LoginPage extends Page {
 
   val userIdVar:Var[Option[String]]=Var(None)
 
-  def getUserInfo():Unit= {
-    Http.getAndParse[GetUserInfoRsp](Routes.User.getUserInfo).map {rsp=>
-      if(rsp.errCode==0&&rsp.userType.getOrElse(0)==Constants.userType){
-        userIdVar:=Some(rsp.userId.getOrElse(""))
-      }else{
-        userIdVar:=None
-      }
-    }
-  }
-
   def login(): Unit = {
     val userId = dom.document.getElementById("loginId").asInstanceOf[Input].value
     val psw = dom.document.getElementById("loginPassword").asInstanceOf[Input].value
