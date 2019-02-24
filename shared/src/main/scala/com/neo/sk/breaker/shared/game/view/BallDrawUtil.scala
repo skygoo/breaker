@@ -31,9 +31,9 @@ trait BallDrawUtil { this:GameContainerClientImpl =>
   protected def drawBalls(up:Boolean,offset:Point, offsetTime:Long) = {
     ballMap.values.foreach{ bullet =>
       val p = if(up){
-        offset-bullet.getPosition4Animation(offsetTime)
+        offset-bullet.getPosition4Animation(quadTree,offsetTime)
       }else{
-        bullet.getPosition4Animation(offsetTime) + offset
+        bullet.getPosition4Animation(quadTree,offsetTime) + offset
       }
       val cacheCanvas = canvasCacheMap.getOrElseUpdate(bullet.getBulletLevel(), generateCanvas(bullet))
       val radius = bullet.getRadius

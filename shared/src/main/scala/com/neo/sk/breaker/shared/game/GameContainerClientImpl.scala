@@ -17,7 +17,6 @@ import scala.collection.mutable
   */
 case class GameContainerClientImpl(
                                     config: BreakGameConfig,
-                                    roomType:Byte,
                                     drawFrame: MiddleFrame,
                                     ctx: MiddleContext,
                                     myId: String,
@@ -93,9 +92,42 @@ case class GameContainerClientImpl(
       super.update()
       if (config.esRecoverSupport) addGameSnapShot(systemFrame, getGameContainerAllState())
     }
+    if(!judge(gameContainerState)){
+      systemFrame = gameContainerState.f
+      quadTree.clear()
+      breakMap.clear()
+      gameContainerState.breakers.foreach { t =>
+        val tank = new Breaker(config, t)
+        quadTree.insert(tank)
+        breakMap.put(t.breakId, tank)
+      }
+      obstacleMap.values.foreach(o=>quadTree.insert(o))
+      environmentMap.values.foreach(quadTree.insert)
+      ballMap.values.foreach { bullet =>
+        quadTree.insert(bullet)
+      }
+    }
+
     val endTime = System.currentTimeMillis()
     if (curFrame < gameContainerState.f) {
       println(s"handleGameContainerState update to now use Time=${endTime - startTime} and systemFrame=${systemFrame} sysFrame=${gameContainerState.f}")
+    }
+  }
+
+  private def judge(gameContainerState: GameContainerState) = {
+    gameContainerState.breakers .forall { breakState =>
+      breakMap.get(breakState.breakId) match {
+        case Some(t) =>
+          //fixme 此处排除炮筒方向
+          if (t.getBreakState() != breakState) {
+            println(s"judge failed,because tank=${breakState.breakId} no same,tankMap=${t.getBreakState()},gameContainer=$breakState")
+            false
+          } else true
+        case None => {
+          println(s"judge failed,because tank=${breakState.breakId} not exists....")
+          true
+        }
+      }
     }
   }
 
@@ -168,6 +200,7 @@ case class GameContainerClientImpl(
   }
 
   override protected def handleObstacleAttacked(e: ObstacleAttacked): Unit = {
+    super.handleObstacleAttacked(e)
     obstacleMap.get(e.obstacleId).foreach{ obstacle =>
       if(obstacle.obstacleType==ObstacleType.airDropBox){
         obstacle.propType.foreach {
@@ -263,10 +296,9 @@ case class GameContainerClientImpl(
           drawEnvironment(break.up,offset)
           drawBalls(break.up,offset,offsetTime)
           drawBreaker(break.up,offset,offsetTime)
+          drawMyTankInfo(break)
           renderFps(networkLatency)
           val endTime = System.currentTimeMillis()
-        //          renderTimes += 1
-        //          renderTime += endTime - startTime
 
 
         case None =>

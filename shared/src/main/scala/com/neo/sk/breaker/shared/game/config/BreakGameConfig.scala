@@ -22,6 +22,8 @@ trait BreakGameConfig {
 
   val frameDuration: Long
 
+  val gameMaxFrame: Long
+
   val ballSpeed: Point
 
   val ballMaxFly: Byte

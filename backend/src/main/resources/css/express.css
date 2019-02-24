@@ -2,6 +2,7 @@
     width: 40px;
     height: 40px;
     margin-right: 3px;
+    user-select: none;
 }
 
 .expImg:hover{

@@ -70,6 +70,8 @@ trait InfoDrawUtil {this:GameContainerClientImpl =>
     ctx.setTextAlign("left")
     ctx.setFill("rgb(0,0,0)")
     ctx.fillText(s"Winner is：${winner._2}",0.4 * canvasSize.x * canvasUnit, 0.12 * canvasSize.y * canvasUnit)
-    ctx.fillText(s"Press Space To Comeback!!!",0.4 * canvasSize.x * canvasUnit, 0.32 * canvasSize.y * canvasUnit)
+    ctx.fillText(s"Damage is：${winner._4}", 0.4 * canvasSize.x * canvasUnit, 0.2 * canvasSize.y * canvasUnit)
+    ctx.fillText(s"Press Enter To EnterPage!!!",0.4 * canvasSize.x * canvasUnit, 0.28 * canvasSize.y * canvasUnit)
+    ctx.fillText(s"Press Space To Comeback!!!",0.4 * canvasSize.x * canvasUnit, 0.36 * canvasSize.y * canvasUnit)
   }
 }

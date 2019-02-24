@@ -28,8 +28,6 @@ trait GameContainer {
 
   implicit val config:BreakGameConfig
 
-  val roomType:Byte
-
   val boundary : Point = config.boundary
 
   var systemFrame:Long = 0L //系统帧数
@@ -45,7 +43,7 @@ trait GameContainer {
   protected val gameEventMap = mutable.HashMap[Long,List[GameEvent]]() //frame -> List[GameEvent] 待处理的事件 frame >= curFrame
   protected val actionEventMap = mutable.HashMap[Long,List[UserActionEvent]]() //frame -> List[UserActionEvent]
 
-  var winner:(String,String,Int)=("","",0)
+  var winner:(String,String,Int,Int)=("","",0,0)
 
   protected final def addUserAction(action:UserActionEvent):Unit = {
     actionEventMap.get(action.frame) match {
@@ -84,7 +82,7 @@ trait GameContainer {
   }
 
   protected def handleGameOver(e:GameOver) :Unit={
-    breakMap.find(_._1==e.breakId).foreach(r=>winner=(r._2.playerId,r._2.name,r._2.breakId))
+    breakMap.find(_._1==e.breakId).foreach(r=>winner=(r._2.playerId,r._2.name,r._2.breakId,r._2.crashCount))
   }
 
   final protected def handleGameOver(l:List[GameOver]) :Unit = {
@@ -205,7 +203,9 @@ trait GameContainer {
     ballMove()
   }
 
-  protected def handleObstacleAttacked(e:ObstacleAttacked) :Unit
+  protected def handleObstacleAttacked(e:ObstacleAttacked) :Unit ={
+    breakMap.filter(_._1==e.breakId).foreach(_._2.crashCount+=1)
+  }
 
   protected final def handleObstacleAttacked(es:List[ObstacleAttacked]) :Unit = {
     es foreach handleObstacleAttacked
@@ -272,7 +272,8 @@ trait GameContainer {
 
   def getGameContainerState():GameContainerState = {
     GameContainerState(
-      systemFrame
+      systemFrame,
+      breakMap.values.map(_.getBreakState()).toList,
     )
   }
 }

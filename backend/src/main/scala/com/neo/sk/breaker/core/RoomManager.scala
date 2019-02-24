@@ -32,36 +32,36 @@ object RoomManager {
         implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
         Behaviors.withTimers[Command] { implicit timer =>
           val roomIdGenerator = new AtomicLong(1L)
-          val roomInUse = mutable.HashMap[Long, (Byte,List[(String, String)])]()
+          val roomInUse = mutable.HashMap[Long, List[(String, String)]]()
           idle(roomIdGenerator, roomInUse)
         }
     }
   }
 
   def idle(roomIdGenerator: AtomicLong,
-           roomInUse: mutable.HashMap[Long, (Byte,List[(String, String)])]) // roomId => List[playerId, nickName]
+           roomInUse: mutable.HashMap[Long, List[(String, String)]]) // roomId => List[playerId, nickName]
           (implicit stashBuffer: StashBuffer[Command], timer: TimerScheduler[Command]) = {
     Behaviors.receive[Command] { (ctx, msg) =>
       msg match {
         case msg:JoinRoom =>
-          roomInUse.find(p => p._2._1==msg.roomType&&p._2._2.length < 2).toList.sortBy(_._1).headOption match {
+          roomInUse.find(p => p._2.length < 2).toList.sortBy(_._1).headOption match {
             case Some(t) =>
-              roomInUse.put(t._1, (t._2._1,(msg.userInfo.playerId.getOrElse(""), msg.userInfo.nickName) :: t._2._2))
-              getRoomActor(ctx, t._1,t._2._1) ! msg
+              roomInUse.put(t._1, (msg.userInfo.playerId.getOrElse(""), msg.userInfo.nickName) :: t._2)
+              getRoomActor(ctx, t._1) ! msg
             case None =>
               var roomId = roomIdGenerator.getAndIncrement()
               while (roomInUse.exists(_._1 == roomId)) roomId = roomIdGenerator.getAndIncrement()
-              roomInUse.put(roomId, (msg.roomType,List((msg.userInfo.playerId.getOrElse(""), msg.userInfo.nickName))))
-              getRoomActor(ctx, roomId,msg.roomType) ! msg
+              roomInUse.put(roomId, List((msg.userInfo.playerId.getOrElse(""), msg.userInfo.nickName)))
+              getRoomActor(ctx, roomId) ! msg
           }
           log.debug(s"now roomInUse:$roomInUse")
           Behaviors.same
 
         case msg:LeftRoom=>
-          roomInUse.find(_._2._2.exists(_._1 == msg.userInfo.playerId.getOrElse(""))) match{
+          roomInUse.find(_._2.exists(_._1 == msg.userInfo.playerId.getOrElse(""))) match{
             case Some(t) =>
               roomInUse.remove(t._1)
-              getRoomActor(ctx,t._1,t._2._1) ! msg
+              getRoomActor(ctx,t._1) ! msg
               log.debug(s"玩家：${msg.userInfo.playerId}--${msg.userInfo.nickName}")
             case None => log.debug(s"该玩家不在任何房间--${msg.userInfo}")
           }
@@ -79,10 +79,10 @@ object RoomManager {
     }
   }
 
-  private def getRoomActor(ctx: ActorContext[Command], roomId: Long,roomType:Byte) = {
+  private def getRoomActor(ctx: ActorContext[Command], roomId: Long) = {
     val childName = s"room_$roomId"
     ctx.child(childName).getOrElse {
-      val actor = ctx.spawn(RoomActor.create(roomId,roomType), childName)
+      val actor = ctx.spawn(RoomActor.create(roomId), childName)
       ctx.watchWith(actor, ChildDead(childName, actor))
       actor
 

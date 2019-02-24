@@ -24,7 +24,6 @@ import com.neo.sk.breaker.shared.model.Constants.RoomType
   * Time at 上午9:56
   */
 object LoginPage extends Page {
-  var roomType=RoomType.confrontation
   val random = new Random(System.currentTimeMillis())
   val fromContentFlagVar = Var(0)
 
@@ -106,7 +105,7 @@ object LoginPage extends Page {
   }
 
   def start = {
-    Shortcut.redirect(s"#/play/$roomType")
+    Shortcut.redirect(s"#/play")
   }
 
   val filterMiddleDiv = fromContentFlagVar.map {

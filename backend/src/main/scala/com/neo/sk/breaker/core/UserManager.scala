@@ -56,8 +56,8 @@ object UserManager {
           playerInfo.playerId match {
             case Some(value)=>
               val userActor=getUserActor(ctx,playerInfo)
-              replyTo ! getWebSocketFlow(userActor)
               userActor ! UserActor.ChangeBehaviorToInit
+              replyTo ! getWebSocketFlow(userActor)
               userActor ! UserActor.WsCreateSuccess
             case None=>
               val uid=playerInfo.userName match {
@@ -67,8 +67,8 @@ object UserManager {
                   Constants.BreakerGameUserIdPrefix+uidGenerator.getAndIncrement().toString
               }
               val userActor=getUserActor(ctx,playerInfo.copy(playerId = Some(uid)))
-              replyTo ! getWebSocketFlow(userActor)
               userActor ! UserActor.ChangeBehaviorToInit
+              replyTo ! getWebSocketFlow(userActor)
               userActor ! UserActor.WsCreateSuccess
           }
           Behaviors.same

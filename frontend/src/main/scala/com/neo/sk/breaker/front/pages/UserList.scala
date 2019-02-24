@@ -51,7 +51,7 @@ class UserList(state:Option[Int],checkCallBack: String => Unit = { _ => },
           case "load" =>
             <div style="text-align: center;display: table-cell;vertical-align: middle;">
               <img style="width:100px" src="/breaker/static/img/loading.gif"></img>
-              <p style="font-family: PingFangSC-Regular;font-size: 16px;color: #909399;margin-top:10px;width:50px">加载中</p>
+              <p style="font-family: PingFangSC-Regular;font-size: 16px;color: #909399;margin-top:10px;">加载中</p>
             </div>
           case "warn" =>
             //                Component.loadingDiv

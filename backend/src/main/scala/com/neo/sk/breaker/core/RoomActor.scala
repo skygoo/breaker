@@ -66,7 +66,7 @@ object RoomActor {
     stashBuffer.unstashAll(ctx, behavior)
   }
 
-  def create(roomId: Long,roomType:Byte): Behavior[Command] = {
+  def create(roomId: Long): Behavior[Command] = {
     log.debug(s"RoomActor-${roomId} start...")
     Behaviors.setup[Command] {
       ctx =>
@@ -74,7 +74,7 @@ object RoomActor {
           implicit timer =>
             val subscribersMap = mutable.HashMap[String, (ActorRef[UserActor.Command],ActorRef[BreakerEvent.WsMsgSource])]()
             implicit val sendBuffer = new MiddleBufferInJvm(81920)
-            val gameContainer = GameContainerServerImpl(AppSettings.breakerGameConfig,roomType,log,ctx.self,dispatch(subscribersMap)
+            val gameContainer = GameContainerServerImpl(AppSettings.breakerGameConfig,log,ctx.self,dispatch(subscribersMap)
             )
             idle(roomId, subscribersMap, gameContainer)
         }
@@ -91,7 +91,7 @@ object RoomActor {
           ): Behavior[Command] = {
     Behaviors.receive { (ctx, msg) =>
       msg match {
-        case JoinRoom(userInfo,roomType, userActor,frontActor) =>
+        case JoinRoom(userInfo,userActor,frontActor) =>
           if(subscribersMap.size<2){
             subscribersMap.put(userInfo.playerId.getOrElse(""),(userActor,frontActor))
             gameContainer.joinGame(userInfo.playerId.getOrElse(""), userInfo.nickName,breakIdGenerator.getAndIncrement(), userActor,frontActor)

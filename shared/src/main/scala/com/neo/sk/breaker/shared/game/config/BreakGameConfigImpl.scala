@@ -78,6 +78,7 @@ final case class BallParameters(
 case class BreakGameConfigImpl(
                                 gridBoundary: GridBoundary,
                                 frameDuration: Long,
+                                gameMaxFrame: Long,
                                 ballParameters: BallParameters,
                                 obstacleParameters: ObstacleParameters,
                                 breakerParameters: BreakerParameters

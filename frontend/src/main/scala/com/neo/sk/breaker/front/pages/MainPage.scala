@@ -40,8 +40,8 @@ object MainPage extends PageSwitcher {
 
   private val currentPage: Rx[Elem] = currentPageHash.map {
     case Nil => LoginPage.render
-    case "play" :: roomType :: Nil => {
-      new PlayPage(roomType.toByte, LoginPage.playerInfo).render
+    case "play" :: Nil => {
+      new PlayPage(LoginPage.playerInfo).render
     }
     case "admin" :: l =>
       <div class="conBody">

@@ -68,7 +68,8 @@ case class Ball(
               attackCallBack(o.asInstanceOf[Obstacle])
             }
             //fixme 此处存在BUg
-            if(intList.exists(r => r.isIntersects(this)._2)&&count){
+            val h=intList.find(r => r.isIntersects(this)._2)
+            if(h.nonEmpty&&count){
               count=false
               momentum = Point(-momentum.y,-momentum.x)
             }else if(count){
@@ -79,6 +80,7 @@ case class Ball(
                 momentum = momentum.copy(x = -momentum.x)
               }
             }
+
             this.position = originPosition
           }
         }
@@ -86,11 +88,42 @@ case class Ball(
     }
   }
 
-  def getPosition4Animation(offsetTime: Long) = {
-    this.position + momentum / config.frameDuration * offsetTime
+  def canMove(quadTree:QuadTree):Point = {
+    var moveDistance = momentum
+    val horizontalDistance = moveDistance.copy(y = 0)
+    val verticalDistance = moveDistance.copy(x = 0)
+    val originPosition = this.position
+    List(horizontalDistance,verticalDistance).foreach{ d =>
+      if(d.x != 0 || d.y != 0){
+        val pos = this.position
+        this.position = this.position + d
+        val otherObjects = quadTree.retrieveFilter(this).filter(_.isInstanceOf[ObstacleBall])
+        val intList=otherObjects.filter(r => r.isIntersects(this)._1)
+        if (intList.isEmpty){
+
+        }else{
+          this.position = pos
+          val h=intList.find(r => r.isIntersects(this)._2)
+          if(h.nonEmpty){
+            moveDistance -= d
+          }
+        }
+      }
+    }
+    this.position = originPosition
+    moveDistance
   }
 
-  def getBulletLevel() = {
-    config.getBallLevel(damage)
+  def getPosition4Animation(quadTree:QuadTree,offsetTime: Long) = {
+    val logicMoveDistanceOpt = this.canMove(quadTree)
+    this.position + logicMoveDistanceOpt / config.frameDuration * offsetTime
+  }
+
+  def getBulletLevel():Byte = {
+    if(flyDecCount>config.ballMaxFly-3){
+      2
+    }else{
+      1
+    }
   }
 }

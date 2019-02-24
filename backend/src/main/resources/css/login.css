@@ -144,3 +144,8 @@
 .input_class{
     margin-top: 3px;!important;
 }
+
+.gamespan{
+    display: block;
+    user-select:none;
+}

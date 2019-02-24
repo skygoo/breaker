@@ -25,7 +25,7 @@ case class Breaker(
                     width:Float,
                     height:Float,
                     override protected var position: Point
-                  )extends RectangleObjectOfGame  with ObstacleBreak {
+                  )extends RectangleObjectOfGame  with ObstacleBreak with ObstacleBall {
   def this(config: BreakGameConfig,state:BreakState){
     this(config,state.playerId,state.breakId,state.name,state.width,state.height,state.position)
   }
@@ -34,7 +34,8 @@ case class Breaker(
   override protected val collisionOffset: Float = config.obstacleWO
 
   val up = if(position.y>config.boundary.y/2) false else true
-  protected var curBulletNum:Int=1
+  protected var curBulletNum:Int=config.breakBallLimit
+  var crashCount:Int = 0
   protected var gunDirection:Float=0
   protected var bulletLevel:Byte=1 //子弹等级=1
 
@@ -72,15 +73,14 @@ case class Breaker(
   }
 
   private def getTankBulletDamage():Int = {
-    if(bulletLevel > 2) config.getBallDamage(2)
-    else config.getBallDamage(bulletLevel)
+    config.getBallDamage(bulletLevel)
   }
 
-  def getBulletSize():Int = curBulletNum
+  def getBulletPercent():Float = curBulletNum.toFloat / config.breakBallLimit
 
   def launchBullet():Option[(Float,Point,Int)] = {
-    if(curBulletNum > 0){
-      curBulletNum = curBulletNum - 1
+    if(curBulletNum >= config.breakBallLimit){
+      curBulletNum = 0
       Some(gunDirection,getLaunchBulletPosition(),getTankBulletDamage())
     }else None
   }
@@ -100,7 +100,7 @@ case class Breaker(
 
   def getGunPositions4Animation(): List[Point] = {
     val gunWidth = config.breakGunWidth
-    val gunHeight = config.breakGunHeight * (1 + (this.bulletLevel - 1) * 0.1f)
+    val gunHeight = config.breakGunHeight
     List(
       Point(0, -gunHeight / 2).rotate(this.gunDirection),
       Point(0, gunHeight / 2).rotate(this.gunDirection),

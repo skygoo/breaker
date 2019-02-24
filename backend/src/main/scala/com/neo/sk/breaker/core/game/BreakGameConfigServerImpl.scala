@@ -30,6 +30,9 @@ case class BreakGameConfigServerImpl(config: Config){
   private[this] val gameFameDuration = config.getLong("breakerGame.frameDuration")
     .requiring(t => t >= 1l,"minimum game frame duration is 1 ms")
 
+  private[this] val gameMaxFame = config.getLong("breakerGame.maxFrame")
+    .requiring(t => t >= 1l,"minimum game frame maxFrame is 9000 ms")
+
   private[this] val ballRadius = config.getDoubleList("breakerGame.ball.ballRadius")
     .requiring(_.size() >= 2,"ball radius size has 2 type").asScala.toList.map(_.toFloat)
   private[this] val ballDamage = config.getIntList("breakerGame.ball.ballDamage")
@@ -82,6 +85,6 @@ case class BreakGameConfigServerImpl(config: Config){
 
   private val breakParameters = BreakerParameters(breakWidthData1,breakHeightData1,breakWidthData2,breakHeightData2,breakGunWidthData,breakGunHeightData,breakFillBulletFrame,breakBulletLimit,breakSpeed)
 
-  val gameConfig = BreakGameConfigImpl(gridBoundary,gameFameDuration,ballParameters,obstacleParameters,breakParameters)
+  val gameConfig = BreakGameConfigImpl(gridBoundary,gameFameDuration,gameMaxFame,ballParameters,obstacleParameters,breakParameters)
 
 }

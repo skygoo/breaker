@@ -23,9 +23,9 @@ import scala.xml.Elem
   * Date: 2018/10/29
   * Time: 13:00
   */
-case class GamePlayHolderImpl(name: String,roomType:Byte, playerInfo: UserProtocol.UserInfo) extends GameHolder(name) {
+case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extends GameHolder(name) {
   private[this] val actionSerialNumGenerator = new AtomicInteger(0)
- private var lastMouseMoveAngle: Byte = 0
+  private var lastMouseMoveAngle: Byte = 0
   private val perMouseMoveFrame = 3
   private var lastMoveFrame = -1L
   private val poKeyBoardMoveTheta = 2 * math.Pi / 72 //炮筒顺时针转
@@ -36,20 +36,31 @@ case class GamePlayHolderImpl(name: String,roomType:Byte, playerInfo: UserProtoc
 
   private val watchKeys = Set(
     KeyCode.Left,
-    KeyCode.Right
+    KeyCode.Right,
+    KeyCode.A,
+    KeyCode.D
   )
 
   private val myKeySet = mutable.HashSet[Int]()
 
-  private def changeKeys(k: Int): Int = k match {
-    case KeyCode.W => KeyCode.Up
-    case KeyCode.S => KeyCode.Down
-    case KeyCode.A => KeyCode.Left
-    case KeyCode.D => KeyCode.Right
-    case origin => origin
-  }
+  private def changeKeys(up: Boolean, k: Int): Int =
+    if (up) {
+      k match {
+        case KeyCode.Left => KeyCode.Right
+        case KeyCode.Right => KeyCode.Left
+        case KeyCode.A => KeyCode.Right
+        case KeyCode.D => KeyCode.Left
+        case _ => k
+      }
+    } else {
+      k match {
+        case KeyCode.A => KeyCode.Left
+        case KeyCode.D => KeyCode.Right
+        case _ => k
+      }
+    }
 
-  def getActionSerialNum: Byte = (actionSerialNumGenerator.getAndIncrement()%127).toByte
+  def getActionSerialNum: Byte = (actionSerialNumGenerator.getAndIncrement() % 127).toByte
 
   def start: Unit = {
     canvas.getCanvas.focus()
@@ -60,90 +71,98 @@ case class GamePlayHolderImpl(name: String,roomType:Byte, playerInfo: UserProtoc
     gameLoop()
   }
 
-  def sendExpression(et:Byte,s:Option[String])={
-    val event=BreakerEvent.Expression(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, et,s, getActionSerialNum)
+  def sendExpression(et: Byte, s: Option[String]) = {
+    val event = BreakerEvent.Expression(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, et, s, getActionSerialNum)
     gameContainerOpt.get.preExecuteUserEvent(event)
     sendMsg2Server(event)
   }
 
-  private def addUserActionListenEvent(up:Boolean,breakPosition:Point): Unit = {
+  private def addUserActionListenEvent(up: Boolean, boundary: Point): Unit = {
     canvas.getCanvas.focus()
-    roomType match {
-      case RoomType.confrontation=>
-        canvas.getCanvas.onmousemove = { e: dom.MouseEvent =>
+    canvas.getCanvas.onmousemove = { e: dom.MouseEvent =>
+      if (gameContainerOpt.nonEmpty && gameState == GameState.play) {
+        val point = Point(e.clientX.toFloat, e.clientY.toFloat)
+        val break = gameContainerOpt.get.breakMap.get(gameContainerOpt.get.myBreakId)
+        if (break.nonEmpty) {
+          val theta = if (up) ((Point((canvasBoundary.x + boundary.x) / 2, canvasBoundary.y) - break.get.getPosition) * canvasUnit).getTheta(point).toFloat else point.getTheta((break.get.getPosition + Point((canvasBoundary.x - boundary.x) / 2, 0)) * canvasUnit).toFloat
+          val preMMFAction = BreakerEvent.UserMouseMove(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta, -1)
+          gameContainerOpt.get.preExecuteUserEvent(preMMFAction)
+        }
+      }
+    }
+    canvas.getCanvas.onclick = { e: MouseEvent =>
+      if (gameContainerOpt.nonEmpty && gameState == GameState.play) {
+        val break = gameContainerOpt.get.breakMap.get(gameContainerOpt.get.myBreakId)
+        if (break.nonEmpty && break.get.getBulletPercent() > 0.9) {
           val point = Point(e.clientX.toFloat, e.clientY.toFloat)
-          val theta = if(up) Point(canvasBoundary.*(canvasUnit).x/2,canvasBoundary.*(canvasUnit).y-breakPosition.y* canvasUnit).getTheta(point).toFloat else point.getTheta(Point(canvasBoundary.*(canvasUnit).x/2,breakPosition.y*canvasUnit)).toFloat
-          if (gameContainerOpt.nonEmpty && gameState == GameState.play ) {
-            val preMMFAction = BreakerEvent.UserMouseMove(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta,-1)
-            gameContainerOpt.get.preExecuteUserEvent(preMMFAction)
-          }
+          val theta = if (up) ((Point((canvasBoundary.x + boundary.x) / 2, canvasBoundary.y) - break.get.getPosition) * canvasUnit).getTheta(point).toFloat else point.getTheta((break.get.getPosition + Point((canvasBoundary.x - boundary.x) / 2, 0)) * canvasUnit).toFloat
+          val preExecuteAction = BreakerEvent.UC(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta, getActionSerialNum)
+          gameContainerOpt.get.preExecuteUserEvent(preExecuteAction)
+          sendMsg2Server(preExecuteAction) //发送鼠标位置
+          e.preventDefault()
         }
-        canvas.getCanvas.onclick = { e: MouseEvent =>
-          if (gameContainerOpt.nonEmpty && gameState == GameState.play) {
-            val tank=gameContainerOpt.get.breakMap.get(gameContainerOpt.get.myBreakId)
-            if(tank.nonEmpty&&tank.get.getBulletSize()>0){
-              val point = Point(e.clientX.toFloat, e.clientY.toFloat)
-              val theta = if(up) Point(canvasBoundary.*(canvasUnit).x/2,canvasBoundary.*(canvasUnit).y-breakPosition.y* canvasUnit).getTheta(point).toFloat else point.getTheta(Point(canvasBoundary.*(canvasUnit).x/2,breakPosition.y*canvasUnit)).toFloat
-              val preExecuteAction = BreakerEvent.UC(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, theta, getActionSerialNum)
-              gameContainerOpt.get.preExecuteUserEvent(preExecuteAction)
-              sendMsg2Server(preExecuteAction) //发送鼠标位置
-              e.preventDefault()
-            }
-          }
+      }
+    }
+    canvas.getCanvas.onkeydown = { e: dom.KeyboardEvent =>
+      if (gameContainerOpt.nonEmpty && gameState == GameState.play) {
+        val keyCode = changeKeys(up, e.keyCode)
+        if (watchKeys.contains(keyCode) && !myKeySet.contains(keyCode)) {
+          myKeySet.add(keyCode)
+          val preExecuteAction = BreakerEvent.UserPressKeyDown(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, keyCode.toByte, getActionSerialNum)
+          gameContainerOpt.get.preExecuteUserEvent(preExecuteAction)
+          sendMsg2Server(preExecuteAction)
+          e.preventDefault()
         }
+      }
+    }
+    canvas.getCanvas.onkeyup = { e: dom.KeyboardEvent =>
+      if (gameContainerOpt.nonEmpty && gameState == GameState.play) {
+        val keyCode = changeKeys(up, e.keyCode)
+        if (watchKeys.contains(keyCode)) {
+          myKeySet.remove(keyCode)
+          val preExecuteAction = BreakerEvent.UserPressKeyUp(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, keyCode.toByte, getActionSerialNum)
+          gameContainerOpt.get.preExecuteUserEvent(preExecuteAction)
+          sendMsg2Server(preExecuteAction)
+          e.preventDefault()
 
-      case RoomType.cooperation=>
-        canvas.getCanvas.onkeydown = { e: dom.KeyboardEvent =>
-          if (gameContainerOpt.nonEmpty && gameState == GameState.play) {
-            val keyCode = changeKeys(e.keyCode)
-            if (watchKeys.contains(keyCode) && !myKeySet.contains(keyCode)) {
-              myKeySet.add(keyCode)
-              val preExecuteAction = BreakerEvent.UserPressKeyDown(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, keyCode.toByte, getActionSerialNum)
-              gameContainerOpt.get.preExecuteUserEvent(preExecuteAction)
-              sendMsg2Server(preExecuteAction)
-              e.preventDefault()
-            }
-          }
         }
-
-        canvas.getCanvas.onkeyup = { e: dom.KeyboardEvent =>
-          if (gameContainerOpt.nonEmpty && gameState == GameState.play) {
-            val keyCode = changeKeys(e.keyCode)
-            if (watchKeys.contains(keyCode)) {
-              myKeySet.remove(keyCode)
-              val preExecuteAction = BreakerEvent.UserPressKeyUp(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, keyCode.toByte, getActionSerialNum)
-              gameContainerOpt.get.preExecuteUserEvent(preExecuteAction)
-              sendMsg2Server(preExecuteAction)
-              e.preventDefault()
-
-            }
-          }
-        }
+      }
     }
   }
 
-  private def addUserComeBackListenEvent()={
+  private def addUserComeBackListenEvent() = {
     var spaceKeyUpState = true
-    if(gameState==GameState.stop){
+    var enterKeyUpState = true
+    if (gameState == GameState.stop) {
       canvas.getCanvas.focus()
       canvas.getCanvas.onkeydown = { e: dom.KeyboardEvent =>
-        val keyCode = changeKeys(e.keyCode)
+        val keyCode = e.keyCode
         if (keyCode == KeyCode.Space && spaceKeyUpState) {
           //          audioForBullet.play()
           spaceKeyUpState = false
           println("reStart------!")
-          val preExecuteAction = BreakerEvent.StartGame(roomType)
+          val preExecuteAction = BreakerEvent.StartGame
           sendMsg2Server(preExecuteAction) //发送鼠标位置
           Shortcut.cancelSchedule(timer)
           timer = Shortcut.schedule(gameLoop, 100)
           setGameState(GameState.loadingWait)
           e.preventDefault()
         }
+        if (keyCode == KeyCode.Enter && enterKeyUpState) {
+          //          audioForBullet.play()
+          enterKeyUpState = false
+          closeHolder
+          Shortcut.redirect("")
+          e.preventDefault()
+        }
       }
       canvas.getCanvas.onkeyup = { e: dom.KeyboardEvent =>
-        val keyCode = changeKeys(e.keyCode)
+        val keyCode = e.keyCode
         if (keyCode == KeyCode.Space) {
           spaceKeyUpState = true
+        }
+        if (keyCode == KeyCode.Enter) {
+          enterKeyUpState = true
         }
       }
     }
@@ -159,23 +178,24 @@ case class GamePlayHolderImpl(name: String,roomType:Byte, playerInfo: UserProtoc
     println(data.getClass)
     data match {
       case WsSuccess =>
-        webSocketClient.sendMsg(BreakerEvent.StartGame(roomType))
+        webSocketClient.sendMsg(BreakerEvent.StartGame)
         Shortcut.cancelSchedule(timer)
         timer = Shortcut.schedule(gameLoop, 100)
         setGameState(GameState.loadingWait)
 
       case e: BreakerEvent.YourInfo =>
-        val breaker=new Breaker(e.config,e.break)
+        val breaker = new Breaker(e.config, e.break)
         println(s"new game the id is ${breaker.breakId}=====${breaker.name}")
         println(s"玩家信息${e}")
         Shortcut.cancelSchedule(timer)
         timer = Shortcut.schedule(gameLoop, e.config.frameDuration)
+
         /**
           * 更新游戏数据
           **/
-        gameContainerOpt = Some(GameContainerClientImpl(e.config,e.roomType,drawFrame, ctx, breaker.playerId, breaker.breakId, breaker.name, canvasBoundary, canvasUnit, gameOverCallback))
-        addUserActionListenEvent(breaker.up,breaker.getPosition)
-        LoginPage.playerInfo=playerInfo.copy(nickName = breaker.name,playerId = Some(breaker.playerId))
+        gameContainerOpt = Some(GameContainerClientImpl(e.config, drawFrame, ctx, breaker.playerId, breaker.breakId, breaker.name, canvasBoundary, canvasUnit, gameOverCallback))
+        addUserActionListenEvent(breaker.up, e.config.boundary)
+        LoginPage.playerInfo = playerInfo.copy(nickName = breaker.name, playerId = Some(breaker.playerId))
 
       case e: BreakerEvent.SyncGameState =>
         gameContainerOpt.foreach(_.receiveGameContainerState(e.state))

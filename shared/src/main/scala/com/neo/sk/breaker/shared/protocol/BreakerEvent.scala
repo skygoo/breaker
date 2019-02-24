@@ -18,7 +18,8 @@ object BreakerEvent {
                                         )
 
   final case class GameContainerState(
-                                 f:Long
+                                 f:Long,
+                                 breakers:List[BreakState]
                                )
 
   /**前端建立WebSocket*/
@@ -28,7 +29,7 @@ object BreakerEvent {
 
   sealed trait WsMsgFront extends WsMsgFrontSource
 
-  final case class StartGame(roomType:Byte) extends WsMsgFront
+  case object StartGame extends WsMsgFront
 
   /**后台建立WebSocket*/
   trait WsMsgSource
@@ -40,7 +41,7 @@ object BreakerEvent {
   case object DecodeError extends WsMsgServer
 
   case object WsSuccess extends WsMsgServer
-  final case class YourInfo(break:BreakState, config:BreakGameConfigImpl,roomType:Byte) extends WsMsgServer
+  final case class YourInfo(break:BreakState, config:BreakGameConfigImpl) extends WsMsgServer
 
   final case class UserLeftRoom(playerId:String, name:String, breakId:Int, override val frame:Long) extends UserEvent with WsMsgServer
   final case class SyncGameState(state:GameContainerState) extends WsMsgServer
