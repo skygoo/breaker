@@ -73,7 +73,7 @@ case class GameContainerServerImpl(
   private def generateBrick(randPos:Byte,position:Point) = {
     val oId = obstacleIdGenerator.getAndIncrement()
     val pos=if(randPos>4) 0 else randPos
-    Brick(config, oId, pos.toByte, position, random.nextInt(config.propMaxBlood)+1)
+    Brick(config, oId, 0, position, random.nextInt(config.propMaxBlood)+1)
   }
 
   private def generateWall(position:Point) = {
