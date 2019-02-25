@@ -79,7 +79,7 @@ case class GameContainerServerImpl(
   private def generateBrick(randPos: Byte, position: Point) = {
     val oId = obstacleIdGenerator.getAndIncrement()
     val pos = if (randPos > 4) 0 else randPos
-    Brick(config, oId, pos.toByte, position, random.nextInt(config.propMaxBlood) + 1)
+    Brick(config, oId, pos.toByte, position, random.nextInt(config.brickMaxBlood) + 1)
   }
 
   private def generateWall(position: Point) = {
@@ -183,7 +183,6 @@ case class GameContainerServerImpl(
   init()
 
   def joinGame(playerId: String, name: String, breakId: Boolean, userActor: ActorRef[UserActor.Command], frontActor: ActorRef[BreakerEvent.WsMsgSource]): Unit = {
-    println(breakId,playerId)
     justJoinUser = (playerId, name, breakId, userActor, frontActor) :: justJoinUser
   }
 

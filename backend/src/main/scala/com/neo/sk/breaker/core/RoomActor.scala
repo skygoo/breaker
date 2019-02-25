@@ -99,8 +99,8 @@ object RoomActor {
             log.info(s"room-$roomId start....")
             gameContainer.startGame
             //remind 同步全量数据
-            dispatch(subscribersMap)(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()))
-//            subscribersMap.values.foreach(_._1 ! UserActor.DispatchMsg(BreakerEvent.Wrap(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())))
+//            dispatch(subscribersMap)(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()))
+            subscribersMap.values.foreach(_._1 ! UserActor.DispatchMsg(BreakerEvent.Wrap(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())))
             timer.startPeriodicTimer(GameLoopKey, GameLoop, gameContainer.config.frameDuration.millis)
           }
           idle(roomId, subscribersMap, gameContainer)
@@ -137,7 +137,7 @@ object RoomActor {
   }
 
   def dispatch(subscribers: mutable.HashMap[String, (ActorRef[UserActor.Command],ActorRef[BreakerEvent.WsMsgSource])])(msg: BreakerEvent.WsMsgServer)(implicit sendBuffer: MiddleBufferInJvm) = {
-//    subscribers.values.foreach(_._2 ! BreakerEvent.Wrap(msg.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result()))
-    subscribers.values.foreach(_._1 ! UserActor.DispatchMsg(BreakerEvent.Wrap(msg.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())))
+    subscribers.values.foreach(_._2 ! BreakerEvent.Wrap(msg.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result()))
+//    subscribers.values.foreach(_._1 ! UserActor.DispatchMsg(BreakerEvent.Wrap(msg.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())))
   }
 }

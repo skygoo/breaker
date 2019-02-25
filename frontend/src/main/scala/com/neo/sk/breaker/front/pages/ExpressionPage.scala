@@ -20,10 +20,10 @@ case class ExpressionPage(clickCallback:(Byte,Option[String])=>Unit) extends Pag
       <div style="margin-bottom: 10%;font-size: x-large;padding: 3px;">
         <span style="user-select:none;color: brown;">游戏规则</span>
         <div style="text-align: left;user-select:none;">
-          <span class="gamespan">将离自身最近一行消除即可在对面生成一行；</span>
+          <span class="gamespan">将离自身最近一行消除即可在对手方生成一行；</span>
           <span class="gamespan">平板可以发射和反射小球；</span>
           <span class="gamespan">发射状态充满可以发射；</span>
-          <span class="gamespan">小球撞击“+”填充发射状态；</span>
+          <span class="gamespan">小球撞击“+”立即填充发射状态,其余每1秒填充；</span>
           <span class="gamespan">小球撞击“-”消失；</span>
           <span class="gamespan">小球最大撞击次数为15；将要消失时变为灰色</span>
         </div>

@@ -198,6 +198,11 @@ object UserActor {
         case WebSocketMsg(reqOpt) =>
           if(reqOpt.nonEmpty){
             reqOpt.get match{
+              case BreakerEvent.StopWebSocket=>
+                ctx.unwatch(frontActor)
+                roomManager ! ActorProtocol.LeftRoom(userInfo)
+                switchBehavior(ctx, "init", init(userInfo))
+
               case t:BreakerEvent.UserActionEvent =>
                 roomActor ! RoomActor.WebSocketMsg(t)
                 Behaviors.same

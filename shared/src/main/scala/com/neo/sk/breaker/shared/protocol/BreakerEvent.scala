@@ -30,6 +30,7 @@ object BreakerEvent {
   sealed trait WsMsgFront extends WsMsgFrontSource
 
   case object StartGame extends WsMsgFront
+  case object StopWebSocket extends WsMsgFront
 
   /**后台建立WebSocket*/
   trait WsMsgSource

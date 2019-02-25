@@ -25,14 +25,10 @@ import scala.xml.Elem
   */
 case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) extends GameHolder(name) {
   private[this] val actionSerialNumGenerator = new AtomicInteger(0)
-  private var lastMouseMoveAngle: Byte = 0
-  private val perMouseMoveFrame = 3
-  private var lastMoveFrame = -1L
-  private val poKeyBoardMoveTheta = 2 * math.Pi / 72 //炮筒顺时针转
-  private val neKeyBoardMoveTheta = -2 * math.Pi / 72 //炮筒逆时针转
-  private var poKeyBoardFrame = 0L
-  private var eKeyBoardState4AddBlood = true
   private val preExecuteFrameOffset = Constants.PreExecuteFrameOffset
+
+  var spaceKeyUpState = false
+  var enterKeyUpState = false
 
   private val watchKeys = Set(
     KeyCode.Left,
@@ -72,6 +68,7 @@ case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) e
   }
 
   def sendExpression(et: Byte, s: Option[String]) = {
+    canvas.getCanvas.focus()
     val event = BreakerEvent.Expression(gameContainerOpt.get.myBreakId, gameContainerOpt.get.systemFrame + preExecuteFrameOffset, et, s, getActionSerialNum)
     gameContainerOpt.get.preExecuteUserEvent(event)
     sendMsg2Server(event)
@@ -131,11 +128,9 @@ case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) e
   }
 
   private def addUserComeBackListenEvent() = {
-    var spaceKeyUpState = true
-    var enterKeyUpState = true
-    if (gameState == GameState.stop) {
-      canvas.getCanvas.focus()
-      canvas.getCanvas.onkeydown = { e: dom.KeyboardEvent =>
+    canvas.getCanvas.focus()
+    canvas.getCanvas.onkeydown = { e: dom.KeyboardEvent =>
+      if (gameState == GameState.stop) {
         val keyCode = e.keyCode
         if (keyCode == KeyCode.Space && spaceKeyUpState) {
           //          audioForBullet.play()
@@ -151,24 +146,19 @@ case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) e
         if (keyCode == KeyCode.Enter && enterKeyUpState) {
           //          audioForBullet.play()
           enterKeyUpState = false
+          val preExecuteAction = BreakerEvent.StopWebSocket
+          sendMsg2Server(preExecuteAction) //发送鼠标位置
           closeHolder
           Shortcut.redirect("")
           e.preventDefault()
-        }
-      }
-      canvas.getCanvas.onkeyup = { e: dom.KeyboardEvent =>
-        val keyCode = e.keyCode
-        if (keyCode == KeyCode.Space) {
-          spaceKeyUpState = true
-        }
-        if (keyCode == KeyCode.Enter) {
-          enterKeyUpState = true
         }
       }
     }
   }
 
   override def gameOverCallback(): Unit = {
+    spaceKeyUpState = true
+    enterKeyUpState = true
     setGameState(GameState.stop)
     Shortcut.cancelSchedule(timer)
     addUserComeBackListenEvent()
@@ -184,6 +174,7 @@ case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) e
         setGameState(GameState.loadingWait)
 
       case e: BreakerEvent.YourInfo =>
+
         val breaker = new Breaker(e.config, e.break)
         println(s"new game the id is ${breaker.breakId}=====${breaker.name}")
         println(s"玩家信息${e}")

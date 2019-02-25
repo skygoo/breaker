@@ -6,7 +6,7 @@ package com.neo.sk.breaker.models.DAO
   * Time at 下午2:55
   */
 
-case class UserGameMapInfo(userId:String)
+case class UserGameMapInfo(userId:String,userType:Byte)
 
 trait UserGameMapTable {
 
