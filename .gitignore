@@ -62,4 +62,4 @@ shared/.js/
 shared/.jvm/
 nohup.out
 data/
-#backend/src/main/resources/application.conf
+backend/src/main/resources/application.conf
