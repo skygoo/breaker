@@ -20,7 +20,7 @@ case class GameContainerClientImpl(
                                     drawFrame: MiddleFrame,
                                     ctx: MiddleContext,
                                     myId: String,
-                                    var myBreakId: Int,
+                                    var myBreakId: Boolean,
                                     myName: String,
                                     var canvasSize: Point,
                                     var canvasUnit: Float,
@@ -42,7 +42,6 @@ case class GameContainerClientImpl(
   private var gameContainerAllStateOpt: Option[GameContainerAllState] = None
   private var gameContainerStateOpt: Option[GameContainerState] = None
   protected var waitSyncData: Boolean = true
-
   private val uncheckedActionMap = mutable.HashMap[Byte, Long]() //serinum -> frame
 
 
@@ -63,7 +62,7 @@ case class GameContainerClientImpl(
     ballMap.clear()
 
     gameContainerAllState.breakers.foreach { t =>
-      val breaker = new Breaker(config,t)
+      val breaker = new Breaker(config, t)
       quadTree.insert(breaker)
       breakMap.put(t.breakId, breaker)
     }
@@ -92,16 +91,16 @@ case class GameContainerClientImpl(
       super.update()
       if (config.esRecoverSupport) addGameSnapShot(systemFrame, getGameContainerAllState())
     }
-    if(!judge(gameContainerState)){
+    if (!judge(gameContainerState)) {
       systemFrame = gameContainerState.f
       quadTree.clear()
       breakMap.clear()
-      gameContainerState.breakers.foreach { t =>
+      gameContainerState.breakers.get.foreach { t =>
         val tank = new Breaker(config, t)
         quadTree.insert(tank)
         breakMap.put(t.breakId, tank)
       }
-      obstacleMap.values.foreach(o=>quadTree.insert(o))
+      obstacleMap.values.foreach(o => quadTree.insert(o))
       environmentMap.values.foreach(quadTree.insert)
       ballMap.values.foreach { bullet =>
         quadTree.insert(bullet)
@@ -115,19 +114,23 @@ case class GameContainerClientImpl(
   }
 
   private def judge(gameContainerState: GameContainerState) = {
-    gameContainerState.breakers .forall { breakState =>
-      breakMap.get(breakState.breakId) match {
-        case Some(t) =>
-          //fixme 此处排除炮筒方向
-          if (t.getBreakState() != breakState) {
-            println(s"judge failed,because tank=${breakState.breakId} no same,tankMap=${t.getBreakState()},gameContainer=$breakState")
-            false
-          } else true
-        case None => {
-          println(s"judge failed,because tank=${breakState.breakId} not exists....")
-          true
+    if(gameContainerState.breakers.nonEmpty){
+      gameContainerState.breakers.get.forall { breakState =>
+        breakMap.get(breakState.breakId) match {
+          case Some(t) =>
+            //fixme 此处排除炮筒方向
+            if (t.getBreakState() != breakState) {
+              println(s"judge failed,because tank=${breakState.breakId} no same,tankMap=${t.getBreakState()},gameContainer=$breakState")
+              false
+            } else true
+          case None => {
+            println(s"judge failed,because tank=${breakState.breakId} not exists....")
+            true
+          }
         }
       }
+    }else{
+      true
     }
   }
 
@@ -142,9 +145,9 @@ case class GameContainerClientImpl(
     }
   }
 
-  def removePreEvent(frame:Long, breakId:Int, serialNum:Byte):Unit = {
-    actionEventMap.get(frame).foreach{ actions =>
-      actionEventMap.put(frame,actions.filterNot(t => t.breakId == breakId && t.serialNum == serialNum))
+  def removePreEvent(frame: Long, breakId: Boolean, serialNum: Byte): Unit = {
+    actionEventMap.get(frame).foreach { actions =>
+      actionEventMap.put(frame, actions.filterNot(t => t.breakId == breakId && t.serialNum == serialNum))
     }
   }
 
@@ -200,25 +203,26 @@ case class GameContainerClientImpl(
   }
 
   override protected def handleObstacleAttacked(e: ObstacleAttacked): Unit = {
-    super.handleObstacleAttacked(e)
-    obstacleMap.get(e.obstacleId).foreach{ obstacle =>
-      if(obstacle.obstacleType==ObstacleType.airDropBox){
+    obstacleMap.get(e.obstacleId).foreach { obstacle =>
+      breakMap.filter(_._1 == e.breakId).foreach(_._2.crashCount += 1)
+      ballMap.filter(_._1 == e.ballId).foreach(_._2.flyDecCount += 1)
+      if (obstacle.obstacleType == ObstacleType.airDropBox) {
         obstacle.propType.foreach {
           case PropType.addBallProp =>
             breakMap.get(e.breakId) match {
-              case Some(value)=>
+              case Some(value) =>
                 value.fillBullet()
-              case None=>
+              case None =>
             }
           case PropType.decBallProp =>
             ballMap.get(e.ballId) match {
-              case Some(value)=>
+              case Some(value) =>
                 removeBall(value)
-              case None=>
+              case None =>
             }
         }
       }
-      if(obstacle.isLived()){
+      if (obstacle.isLived()) {
         obstacle.attackDamage(e.damage)
       }
     }
@@ -245,9 +249,9 @@ case class GameContainerClientImpl(
     uncheckedActionMap.put(action.serialNum, action.frame)
   }
 
-  protected def addGameEvents(frame:Long,events:List[GameEvent],actionEvents:List[UserActionEvent]) = {
-    gameEventMap.put(frame,events)
-    actionEventMap.put(frame,actionEvents)
+  protected def addGameEvents(frame: Long, events: List[GameEvent], actionEvents: List[UserActionEvent]) = {
+    gameEventMap.put(frame, events)
+    actionEventMap.put(frame, actionEvents)
   }
 
   override def update(): Unit = {
@@ -290,12 +294,12 @@ case class GameContainerClientImpl(
       ctx.setLineJoin("round")
       breakMap.get(myBreakId) match {
         case Some(break) =>
-          val offset = if(break.up) Point((w+boundary.x)/2,h) else Point((w-boundary.x)/2,0)
+          val offset = if (break.up) Point((w + boundary.x) / 2, h) else Point((w - boundary.x) / 2, 0)
           drawBackground()
-          drawObstacles(break.up,offset)
-          drawEnvironment(break.up,offset)
-          drawBalls(break.up,offset,offsetTime)
-          drawBreaker(break.up,offset,offsetTime)
+          drawObstacles(break.up, offset)
+          drawEnvironment(break.up, offset)
+          drawBalls(break.up, offset, offsetTime)
+          drawBreaker(break.up, offset, offsetTime)
           drawMyTankInfo(break)
           renderFps(networkLatency)
           val endTime = System.currentTimeMillis()

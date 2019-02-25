@@ -74,17 +74,23 @@ object UserListPage extends Page {
       </div>
     </div>
 
-  private def addState4User(state:Int):Unit= Http.postJsonAndParse[SuccessRsp](Routes.User.addState4User, AddState4UserReq(choseList.toList,state).asJson.noSpaces).map {
-    rsp =>
-      if (rsp.errCode == 0) {
-        //remind 清除页面缓存
-        UserList.listMap.remove(Some(state))
-        AlertModel.mainYAlert.show(if (state==1) "解禁成功" else "封禁成功", 1500)
-        choseList.clear()
-      } else {
-        AlertModel.mainYAlert.show(if (state==1) "解禁:"+rsp.msg else "封禁:"+rsp.msg, 1500)
+  private def addState4User(state:Int):Unit=
+    if(choseList.nonEmpty){
+      Http.postJsonAndParse[SuccessRsp](Routes.User.addState4User, AddState4UserReq(choseList.toList,state).asJson.noSpaces).map {
+        rsp =>
+          if (rsp.errCode == 0) {
+            //remind 清除页面缓存
+            UserList.listMap.remove(Some(state))
+            AlertModel.mainYAlert.show(if (state==1) "解禁成功" else "封禁成功", 1500)
+            choseList.clear()
+          } else {
+            AlertModel.mainYAlert.show(if (state==1) "解禁:"+rsp.msg else "封禁:"+rsp.msg, 1500)
+          }
+          refreshPage(true)
       }
-      refreshPage(true)
-  }
+    }else{
+      MainPage.createConfirm("请选择用户")
+    }
+
 
 }

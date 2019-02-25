@@ -10,7 +10,7 @@ import com.neo.sk.breaker.shared.game.config.BreakGameConfigImpl
   */
 object BreakerEvent {
   final case class GameContainerAllState(
-                                          f:Long,
+                                          f:Int,
                                           breakers:List[BreakState],
                                           balls:List[BallState],
                                           obstacle:List[ObstacleState],
@@ -18,8 +18,8 @@ object BreakerEvent {
                                         )
 
   final case class GameContainerState(
-                                 f:Long,
-                                 breakers:List[BreakState]
+                                 f:Int,
+                                 breakers:Option[List[BreakState]]
                                )
 
   /**前端建立WebSocket*/
@@ -43,48 +43,52 @@ object BreakerEvent {
   case object WsSuccess extends WsMsgServer
   final case class YourInfo(break:BreakState, config:BreakGameConfigImpl) extends WsMsgServer
 
-  final case class UserLeftRoom(playerId:String, name:String, breakId:Int, override val frame:Long) extends UserEvent with WsMsgServer
+  final case class UserLeftRoom(playerId:String, name:String, breakId:Boolean, override val frame:Int) extends UserEvent with WsMsgServer
   final case class SyncGameState(state:GameContainerState) extends WsMsgServer
   final case class SyncGameAllState(gState:GameContainerAllState) extends WsMsgServer
   final case class Wrap(ws:Array[Byte]) extends WsMsgSource
   final case class PingPackage(sendTime:Long) extends WsMsgServer with WsMsgFront
 
+  /**异地登录消息
+    * WebSocket连接重新建立*/
+  case object RebuildWebSocket extends WsMsgServer
 
   sealed trait GameEvent {
-    val frame:Long
+    val frame:Int
   }
 
   trait UserEvent extends GameEvent
   trait EnvironmentEvent extends GameEvent  //游戏环境产生事件
   trait UserActionEvent extends UserEvent{   //游戏用户动作事件
-    val breakId:Int
+    val breakId:Boolean
     val serialNum:Byte
   }
 
-  final case class UserMouseMove(breakId:Int, override val frame:Long, d:Float, override val serialNum:Byte) extends UserActionEvent
+  final case class UserMouseMove(breakId:Boolean, override val frame:Int, d:Float, override val serialNum:Byte) extends UserActionEvent
 
-  final case class UC(breakId:Int,override val frame:Long,d:Float,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
+  final case class UC(breakId:Boolean,override val frame:Int,d:Float,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
   type UserMouseClick = UC
 
-  final case class UserPressKeyDown(breakId:Int,override val frame:Long,keyCodeDown:Byte,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
-  final case class UserPressKeyUp(breakId:Int,override val frame:Long,keyCodeUp:Byte,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
+  final case class UserPressKeyDown(breakId:Boolean,override val frame:Int,keyCodeDown:Byte,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
+  final case class UserPressKeyUp(breakId:Boolean,override val frame:Int,keyCodeUp:Byte,override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
 
 
-  final case class Expression(breakId:Int, override val frame: Long,et:Byte,s:Option[String],override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
+  final case class Expression(breakId:Boolean, override val frame: Int,et:Byte,s:Option[String],override val serialNum:Byte) extends UserActionEvent with WsMsgFront with WsMsgServer
 
   /**生成小球*/
-  final case class GenerateBall(override val frame:Long, ball:BallState, s:Boolean) extends EnvironmentEvent with WsMsgServer
+  final case class GenerateBall(override val frame:Int, ball:BallState, s:Boolean) extends EnvironmentEvent with WsMsgServer
   /**生成砖块*/
-  final case class GenerateObstacle(override val frame:Long,obstacleState: ObstacleState) extends EnvironmentEvent with WsMsgServer
+  final case class GenerateObstacle(override val frame:Int,obstacleState: ObstacleState) extends EnvironmentEvent with WsMsgServer
   /**砖块消失事件*/
-  final case class ObstacleRemove(obstacleId:Int,breakId:Int,ballId:Int, override val frame:Long) extends EnvironmentEvent with WsMsgServer
+  final case class ObstacleRemove(obstacleId:Int,breakId:Boolean,ballId:Int, override val frame:Int) extends EnvironmentEvent with WsMsgServer
   /**砖块移动事件*/
-  final case class ObstacleMove(up:Boolean, override val frame:Long) extends EnvironmentEvent with WsMsgServer
+  final case class ObstacleMove(up:Boolean, override val frame:Int) extends EnvironmentEvent with WsMsgServer
 
-  final case class GameOver(breakId:Int,override val frame:Long)extends EnvironmentEvent with WsMsgServer
+  final case class GameOver(breakId:Boolean,override val frame:Int)extends EnvironmentEvent with WsMsgServer
 
 
   /**游戏逻辑产生事件*/
-  final case class ObstacleAttacked(obstacleId:Int,breakId:Int, ballId:Int, damage:Int, override val frame:Long) extends EnvironmentEvent
+  final case class ObstacleAttacked(obstacleId:Int,breakId:Boolean, ballId:Int, damage:Int, override val frame:Int) extends EnvironmentEvent
+  final case class BreakAttacked(breakId:Boolean, ballId:Int,override val frame:Int) extends EnvironmentEvent
 
 }

@@ -35,8 +35,6 @@ object RoomActor {
 
   private final val InitTime = Some(5.minutes)
 
-  private val breakIdGenerator = new AtomicInteger(100)
-
   private final case object BehaviorChangeKey
 
   private final case object GameLoopKey
@@ -93,8 +91,9 @@ object RoomActor {
       msg match {
         case JoinRoom(userInfo,userActor,frontActor) =>
           if(subscribersMap.size<2){
+            //remind 此处顺序不可变
+            gameContainer.joinGame(userInfo.playerId.getOrElse(""), userInfo.nickName,subscribersMap.nonEmpty, userActor,frontActor)
             subscribersMap.put(userInfo.playerId.getOrElse(""),(userActor,frontActor))
-            gameContainer.joinGame(userInfo.playerId.getOrElse(""), userInfo.nickName,breakIdGenerator.getAndIncrement(), userActor,frontActor)
           }
           if(subscribersMap.size>1){
             log.info(s"room-$roomId start....")
@@ -109,7 +108,10 @@ object RoomActor {
         case GameLoop =>
           gameContainer.update()
           if(gameContainer.systemFrame%20==0){
-            dispatch(subscribersMap)(BreakerEvent.SyncGameState(gameContainer.getGameContainerState()))
+            dispatch(subscribersMap)(BreakerEvent.SyncGameState(gameContainer.getGameContainerState(false)))
+          }
+          if(gameContainer.systemFrame%50==0){
+            dispatch(subscribersMap)(BreakerEvent.SyncGameState(gameContainer.getGameContainerState(true)))
           }
           Behaviors.same
 

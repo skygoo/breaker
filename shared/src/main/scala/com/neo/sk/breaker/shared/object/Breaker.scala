@@ -15,12 +15,12 @@ import com.neo.sk.breaker.shared.util.QuadTree
   * 左右移动
   *
   */
-case class BreakState(playerId: String, breakId: Int, name: String,width:Float,height:Float, position: Point)
+case class BreakState(playerId: String, breakId: Boolean, name: String,width:Float,height:Float, position: Point)
 
 case class Breaker(
                     config: BreakGameConfig,
                     playerId: String,
-                    breakId: Int,
+                    breakId: Boolean,
                     name: String,
                     width:Float,
                     height:Float,

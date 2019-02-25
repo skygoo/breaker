@@ -85,10 +85,14 @@ object MainPage extends PageSwitcher {
     Http.getAndParse[GetUserInfoRsp](Routes.User.getUserInfo).map { rsp =>
       if (rsp.errCode == 0 && rsp.userType.getOrElse(0) == Constants.userType) {
         LoginPage.userIdVar := Some(rsp.userId.getOrElse(""))
+        LoginPage.playerInfo=LoginPage.playerInfo.copy(userName=Some(rsp.userId.getOrElse("")))
+        LoginPage.fromContentFlagVar := 0
       } else if (rsp.errCode == 0 && rsp.userType.getOrElse(0) == Constants.adminType) {
         HeaderBar.adminIdVar := Some(rsp.userId.getOrElse(""))
       } else {
         LoginPage.userIdVar := None
+        LoginPage.playerInfo=LoginPage.playerInfo.copy(userName=None)
+        LoginPage.fromContentFlagVar := 0
       }
     }
   }

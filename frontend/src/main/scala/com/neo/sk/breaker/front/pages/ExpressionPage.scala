@@ -25,7 +25,7 @@ case class ExpressionPage(clickCallback:(Byte,Option[String])=>Unit) extends Pag
           <span class="gamespan">发射状态充满可以发射；</span>
           <span class="gamespan">小球撞击“+”填充发射状态；</span>
           <span class="gamespan">小球撞击“-”消失；</span>
-          <span class="gamespan">小球最大撞击次数为15；将要消失时变为蓝色</span>
+          <span class="gamespan">小球最大撞击次数为15；将要消失时变为灰色</span>
         </div>
         <span style="user-select:none;color: brown;">胜利条件</span>
         <div style="text-align: left;user-select:none;">

@@ -76,7 +76,7 @@ trait UserService extends ServiceUtils {
         dealFutureResult(
           for{
             u <- UserInfoDAO.getUserInfoById(req.userId)
-            m <- UserInfoDAO.getUserInfoById(req.userId)
+            m <- UserInfoDAO.getUserInfoByMail(req.mail)
           }yield{
             if(u.nonEmpty){
               complete(ErrorRsp(10011,s"用户名已存在"))
@@ -117,7 +117,19 @@ trait UserService extends ServiceUtils {
 
   private val getUserInfo = (path("getUserInfo") & get){
     authUser{u=>
-      complete(GetUserInfoRsp(Some(u.userType),Some(u.id)))
+      if(u.userType==Constants.userType){
+        dealFutureResult(
+          UserInfoDAO.getLoginInfo(u.id).map{user=>
+            if(user.nonEmpty&&user.get.state==Constants.stateAllow){
+              complete(GetUserInfoRsp(Some(u.userType),Some(u.id)))
+            }else{
+              complete(ErrorRsp(10001,"账户鉴权出错"))
+            }
+          }
+        )
+      }else{
+        complete(GetUserInfoRsp(Some(u.userType),Some(u.id)))
+      }
     }
   }
 

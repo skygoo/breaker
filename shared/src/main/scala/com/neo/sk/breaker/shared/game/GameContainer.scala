@@ -30,20 +30,20 @@ trait GameContainer {
 
   val boundary : Point = config.boundary
 
-  var systemFrame:Long = 0L //系统帧数
+  var systemFrame:Int = 0 //系统帧数
 
-  val breakMap = mutable.HashMap[Int,Breaker]()
+  val breakMap = mutable.HashMap[Boolean,Breaker]()
   val ballMap = mutable.HashMap[Int,Ball]() //bulletId -> Bullet
   val obstacleMap = mutable.HashMap[Int,Obstacle]() //obstacleId -> Obstacle  可打击的砖头
   val environmentMap = mutable.HashMap[Int,Obstacle]() //obstacleId -> steel and river  不可打击
   val quadTree : QuadTree = new QuadTree(Rectangle(Point(0,0),boundary))
 
-  val breakMoveAction = mutable.HashMap[Int,mutable.HashSet[Byte]]() //tankId -> pressed direction key code
+  val breakMoveAction = mutable.HashMap[Boolean,mutable.HashSet[Byte]]() //tankId -> pressed direction key code
 
   protected val gameEventMap = mutable.HashMap[Long,List[GameEvent]]() //frame -> List[GameEvent] 待处理的事件 frame >= curFrame
   protected val actionEventMap = mutable.HashMap[Long,List[UserActionEvent]]() //frame -> List[UserActionEvent]
 
-  var winner:(String,String,Int,Int)=("","",0,0)
+  var winner:(String,String,Boolean,Int)=("","",false,0)
 
   protected final def addUserAction(action:UserActionEvent):Unit = {
     actionEventMap.get(action.frame) match {
@@ -176,9 +176,14 @@ trait GameContainer {
   }
 
   //小球攻击到障碍物的回调函数，游戏后端需要重写,生成伤害事件
-  protected def attackObstacleCallBack(ball: Ball)(o:Obstacle):Unit = {
-    val event = BreakerEvent.ObstacleAttacked(o.oId,ball.breakId,ball.bId,ball.damage,systemFrame)
-    addGameEvent(event)
+  protected def attackObstacleCallBack(ball: Ball)(t:Boolean,o:Int):Unit = {
+    if(t){
+      val event = BreakerEvent.ObstacleAttacked(o,ball.breakId,ball.bId,ball.damage,systemFrame)
+      addGameEvent(event)
+    }else{
+      val event = BreakerEvent.BreakAttacked(if(o==0) true else false,ball.bId,systemFrame)
+      addGameEvent(event)
+    }
   }
 
   protected final def removeBall(ball: Ball):Unit = {
@@ -203,9 +208,7 @@ trait GameContainer {
     ballMove()
   }
 
-  protected def handleObstacleAttacked(e:ObstacleAttacked) :Unit ={
-    breakMap.filter(_._1==e.breakId).foreach(_._2.crashCount+=1)
-  }
+  protected def handleObstacleAttacked(e:ObstacleAttacked) :Unit
 
   protected final def handleObstacleAttacked(es:List[ObstacleAttacked]) :Unit = {
     es foreach handleObstacleAttacked
@@ -214,6 +217,20 @@ trait GameContainer {
   final protected def handleObstacleAttackedNow() = {
     gameEventMap.get(systemFrame).foreach{ events =>
       handleObstacleAttacked(events.filter(_.isInstanceOf[ObstacleAttacked]).map(_.asInstanceOf[ObstacleAttacked]).reverse)
+    }
+  }
+
+  protected def handleBreakAttacked(e:BreakAttacked) :Unit ={
+    ballMap.filter(_._1==e.ballId).foreach(_._2.breakId=e.breakId)
+  }
+
+  protected final def handleBreakAttacked(es:List[BreakAttacked]) :Unit = {
+    es foreach handleBreakAttacked
+  }
+
+  final protected def handleBreakAttackedNow() = {
+    gameEventMap.get(systemFrame).foreach{ events =>
+      handleBreakAttacked(events.filter(_.isInstanceOf[BreakAttacked]).map(_.asInstanceOf[BreakAttacked]).reverse)
     }
   }
 
@@ -246,7 +263,7 @@ trait GameContainer {
     objectMove()
     handleUserActionEventNow()
     handleObstacleAttackedNow()
-
+    handleBreakAttackedNow()
     handleObstacleRemoveNow()
     handleGenerateObstacleNow()
 
@@ -270,10 +287,10 @@ trait GameContainer {
     )
   }
 
-  def getGameContainerState():GameContainerState = {
+  def getGameContainerState(s:Boolean):GameContainerState = {
     GameContainerState(
       systemFrame,
-      breakMap.values.map(_.getBreakState()).toList,
+      if(s) Some(breakMap.values.map(_.getBreakState()).toList) else None,
     )
   }
 }

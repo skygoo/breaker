@@ -11,7 +11,7 @@ import com.neo.sk.breaker.shared.util.QuadTree
   * Time at 下午6:35
   * 发射球
   */
-case class BallState(bId: Int, breakId: Int, position: Point, damage: Byte, momentum: Point)
+case class BallState(bId: Int, breakId: Boolean, position: Point, damage: Byte, momentum: Point)
 
 case class Ball(
                  config: BreakGameConfig,
@@ -19,7 +19,7 @@ case class Ball(
                  damage: Int, //威力
                  var momentum: Point,
                  bId: Int,
-                 breakId: Int
+                 var breakId: Boolean
                ) extends CircleObjectOfGame {
   def this(config: BreakGameConfig, bulletState: BallState) {
     this(config, bulletState.position, bulletState.damage.toInt, bulletState.momentum, bulletState.bId, bulletState.breakId)
@@ -47,7 +47,7 @@ case class Ball(
   }
 
   // 先检测是否生命周期结束，如果没结束继续移动
-  def move(boundary: Point, quadTree: QuadTree, flyEndCallBack: Ball => Unit, attackCallBack: Obstacle => Unit): Unit = {
+  def move(boundary: Point, quadTree: QuadTree, flyEndCallBack: Ball => Unit, attackObsCallBack: (Boolean,Int) => Unit): Unit = {
     if (isFlyEnd(boundary)) {
       flyEndCallBack(this)
     } else {
@@ -64,9 +64,12 @@ case class Ball(
             quadTree.updateObject(this)
           }  else {
             intList.filter(r => r.isInstanceOf[Obstacle]).foreach { o =>
-              flyDecCount += 1
-              attackCallBack(o.asInstanceOf[Obstacle])
+              attackObsCallBack(true,o.asInstanceOf[Obstacle].oId)
             }
+            intList.filter(_.isInstanceOf[Breaker]).foreach{b=>
+              attackObsCallBack(false,if(b.asInstanceOf[Breaker].breakId) 0 else 1)
+            }
+
             //fixme 此处存在BUg
             val h=intList.find(r => r.isIntersects(this)._2)
             if(h.nonEmpty&&count){
@@ -119,11 +122,11 @@ case class Ball(
     this.position + logicMoveDistanceOpt / config.frameDuration * offsetTime
   }
 
-  def getBulletLevel():Byte = {
+  def getBulletLevel(b:Boolean):Byte = {
     if(flyDecCount>config.ballMaxFly-3){
-      2
+      3
     }else{
-      1
+      if(b==breakId) 1 else 2
     }
   }
 }

@@ -21,7 +21,7 @@ object RoomManager {
 
   private case class TimeOut(msg: String) extends Command
 
-  private case class ChildDead[U](name: String, childRef: ActorRef[U]) extends Command
+  private case class ChildDead[U](roomId: Long, childRef: ActorRef[U]) extends Command
 
   case class CreateRoom(uid: String, tankIdOpt: Option[Int], name: String, startTime: Long, userActor: ActorRef[UserActor.Command], roomId: Option[Long]) extends Command
 
@@ -68,7 +68,8 @@ object RoomManager {
           Behaviors.same
 
         case ChildDead(child,childRef)=>
-          log.info(child + " is stop")
+          log.info("room"+ child + " is stop")
+          roomInUse.remove(child)
           Behaviors.same
 
         case unKnowMsg =>
@@ -83,7 +84,7 @@ object RoomManager {
     val childName = s"room_$roomId"
     ctx.child(childName).getOrElse {
       val actor = ctx.spawn(RoomActor.create(roomId), childName)
-      ctx.watchWith(actor, ChildDead(childName, actor))
+      ctx.watchWith(actor, ChildDead(roomId, actor))
       actor
 
     }.upcast[RoomActor.Command]

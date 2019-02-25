@@ -33,17 +33,6 @@ trait InfoDrawUtil {this:GameContainerClientImpl =>
     println()
   }
 
-  def drawReplayMsg(m:String):Unit = {
-    ctx.setFill("rgb(0,0,0)")
-    ctx.fillRec(0, 0, canvasSize.x * canvasUnit, canvasSize.y * canvasUnit)
-    ctx.setFill("rgb(250, 250, 250)")
-    ctx.setTextAlign("left")
-    ctx.setTextBaseline("top")
-    ctx.setFont(s"Helvetica","normal",3.6 * canvasUnit)
-    ctx.fillText(m, 150, 180)
-    println()
-  }
-
   def drawGameRestart(countDownTimes:Int,killerName:String): Unit = {
     ctx.setFill("rgb(0,0,0)")
     ctx.setTextAlign("center")

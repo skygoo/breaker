@@ -41,7 +41,7 @@ case class GameContainerServerImpl(
   protected var upLine = (config.totalWallRow - config.brickRow) / 2
   protected var downLine = (config.totalWallRow + config.brickRow) / 2 - 1
   private val positionList = mutable.HashMap[Int, List[(Int, Byte)]]()
-  private var justJoinUser: List[(String, String, Int, ActorRef[UserActor.Command], ActorRef[BreakerEvent.WsMsgSource])] = Nil // tankIdOpt
+  private var justJoinUser: List[(String, String, Boolean, ActorRef[UserActor.Command], ActorRef[BreakerEvent.WsMsgSource])] = Nil // tankIdOpt
 
 
   val xPosition = boundary.x / (config.totalColumn + 4)
@@ -67,10 +67,10 @@ case class GameContainerServerImpl(
 
   private def generateAirDrop(position: Point) = {
     val oId = obstacleIdGenerator.getAndIncrement()
-    val rand=random.nextInt(10)
-    val prop=if(rand>2){
+    val rand = random.nextInt(10)
+    val prop = if (rand > 2) {
       Constants.PropType.addBallProp
-    }else{
+    } else {
       Constants.PropType.decBallProp
     }
     PropBox(config, oId, 0, position, random.nextInt(config.propMaxBlood) + 1, Some(prop))
@@ -182,7 +182,8 @@ case class GameContainerServerImpl(
   /** 初始化环境 */
   init()
 
-  def joinGame(playerId: String, name: String, breakId: Int, userActor: ActorRef[UserActor.Command], frontActor: ActorRef[BreakerEvent.WsMsgSource]): Unit = {
+  def joinGame(playerId: String, name: String, breakId: Boolean, userActor: ActorRef[UserActor.Command], frontActor: ActorRef[BreakerEvent.WsMsgSource]): Unit = {
+    println(breakId,playerId)
     justJoinUser = (playerId, name, breakId, userActor, frontActor) :: justJoinUser
   }
 
@@ -212,7 +213,7 @@ case class GameContainerServerImpl(
     dispatch(action)
   }
 
-  private def genABreaker(playerId: String, breakId: Int, nickName: String, position: Point) = {
+  private def genABreaker(playerId: String, breakId: Boolean, nickName: String, position: Point) = {
     val breaker = Breaker(config, playerId, breakId, nickName, config.breakWidth2, config.breakHeight2, position)
     breakMap.put(breakId, breaker)
     quadTree.insert(breaker)
@@ -262,8 +263,9 @@ case class GameContainerServerImpl(
   }
 
   override protected def handleObstacleAttacked(e: BreakerEvent.ObstacleAttacked): Unit = {
-    super.handleObstacleAttacked(e)
     obstacleMap.get(e.obstacleId).foreach { obstacle =>
+      breakMap.filter(_._1 == e.breakId).foreach(_._2.crashCount += 1)
+      ballMap.filter(_._1 == e.ballId).foreach(_._2.flyDecCount += 1)
       if (obstacle.obstacleType == ObstacleType.airDropBox) {
         obstacle.propType.foreach {
           case PropType.addBallProp =>
@@ -374,7 +376,7 @@ case class GameContainerServerImpl(
 
   override protected def clearEventWhenUpdate(): Unit = {
     handleGenerateBrickNow()
-    if(systemFrame==config.gameMaxFrame){
+    if (systemFrame == config.gameMaxFrame) {
       val event = BreakerEvent.GameOver(breakMap.values.toList.sortBy(_.crashCount).reverse.head.breakId, systemFrame + 1)
       addGameEvent(event)
       dispatch(event)

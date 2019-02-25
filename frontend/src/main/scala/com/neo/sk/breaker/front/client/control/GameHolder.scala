@@ -210,4 +210,15 @@ abstract class GameHolder(name: String) extends NetworkInfo {
     ctx.setFont(s"Helvetica","normal",3.6 * canvasUnit)
     ctx.fillText("请稍等，匹配游戏中", 150, 180)
   }
+
+  def drawReplayMsg(m:String):Unit = {
+    ctx.setFill("rgb(0,0,0)")
+    ctx.fillRec(0, 0, canvasBoundary.x * canvasUnit, canvasBoundary.y * canvasUnit)
+    ctx.setFill("rgb(250, 250, 250)")
+    ctx.setTextAlign("left")
+    ctx.setTextBaseline("top")
+    ctx.setFont(s"Helvetica","normal",3.6 * canvasUnit)
+    ctx.fillText(m, 150, 180)
+    println()
+  }
 }

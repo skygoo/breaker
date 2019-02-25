@@ -209,9 +209,12 @@ case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) e
       case e: UserActionEvent =>
         gameContainerOpt.foreach(_.receiveUserEvent(e))
 
-
       case e: GameEvent =>
         gameContainerOpt.foreach(_.receiveGameEvent(e))
+
+      case BreakerEvent.RebuildWebSocket =>
+        drawReplayMsg("存在异地登录。。")
+        closeHolder
 
       case e: PingPackage =>
         receivePingPackage(e)

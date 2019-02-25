@@ -169,6 +169,9 @@ object UserActor {
           Behaviors.stopped
 
         case ChangeBehaviorToInit=>
+          frontActor ! BreakerEvent.Wrap(BreakerEvent.RebuildWebSocket.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+          ctx.unwatch(frontActor)
+          roomManager ! ActorProtocol.LeftRoom(userInfo)
           switchBehavior(ctx, "init", init(userInfo))
 
         case msg:TimeOut=>
@@ -223,6 +226,9 @@ object UserActor {
           Behaviors.stopped
 
         case ChangeBehaviorToInit=>
+          frontActor ! BreakerEvent.Wrap(BreakerEvent.RebuildWebSocket.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+          ctx.unwatch(frontActor)
+          roomManager ! ActorProtocol.LeftRoom(userInfo)
           switchBehavior(ctx, "init", init(userInfo))
 
         case msg:TimeOut=>

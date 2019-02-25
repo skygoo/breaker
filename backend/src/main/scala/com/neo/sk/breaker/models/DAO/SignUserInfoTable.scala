@@ -50,7 +50,7 @@ object UserInfoDAO extends SignUserInfoTable {
     db.run(userInfoTableQuery.filter(m => m.userId===userId).result.headOption)
   }
 
-  def getUserInfobyMail(mail: String) = {
+  def getUserInfoByMail(mail: String) = {
     db.run(userInfoTableQuery.filter(m => m.mail===mail).result.headOption)
   }
 
