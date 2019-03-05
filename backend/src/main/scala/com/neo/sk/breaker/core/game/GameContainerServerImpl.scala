@@ -191,10 +191,6 @@ case class GameContainerServerImpl(
     if (preExecuteUserAction.frame != f) {
       log.debug(s"preExecuteUserAction frame=${preExecuteUserAction.frame}, systemFrame=${systemFrame}")
     }
-    /**
-      * gameAction,userAction
-      * 新增按键操作，补充血量，
-      **/
     val action = preExecuteUserAction match {
       case a: BreakerEvent.UserMouseClick =>
         addUserAction(a.copy(frame = f))
@@ -228,7 +224,7 @@ case class GameContainerServerImpl(
     breakMap.foreach { b =>
       justJoinUser.find(_._1 == b._2.playerId) match {
         case Some(value) =>
-          value._4 ! ActorProtocol.JoinRoomSuccess(b._2, config.asInstanceOf[BreakGameConfigImpl], roomActorRef)
+          value._4 ! ActorProtocol.UserJoinRoomSuccess(b._2, config.asInstanceOf[BreakGameConfigImpl], roomActorRef)
         case None =>
           log.error("user join error")
       }

@@ -13,8 +13,11 @@ import com.neo.sk.breaker.shared.protocol.UserProtocol.UserInfo
   * Time at 下午2:33
   */
 object ActorProtocol {
-  case class JoinRoom(userInfo:UserInfo,userActor:ActorRef[UserActor.Command],frontActor:ActorRef[BreakerEvent.WsMsgSource]) extends UserActor.Command with RoomActor.Command with RoomManager.Command
-  case class JoinRoomSuccess(breaker:Breaker, config:BreakGameConfigImpl, roomActor: ActorRef[RoomActor.Command]) extends UserActor.Command
+  case class UserJoinRoom(userInfo:UserInfo, userActor:ActorRef[UserActor.Command], frontActor:ActorRef[BreakerEvent.WsMsgSource]) extends UserActor.Command with RoomActor.Command with RoomManager.Command
+  case class UserJoinRoomSuccess(breaker:Breaker, config:BreakGameConfigImpl, roomActor: ActorRef[RoomActor.Command]) extends UserActor.Command
+
+
+
   case class JoinRoomFail(msg:String) extends UserActor.Command
 
   case class LeftRoom(userInfo: UserInfo) extends RoomActor.Command with RoomManager.Command

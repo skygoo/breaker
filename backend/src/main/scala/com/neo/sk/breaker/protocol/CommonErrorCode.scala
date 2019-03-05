@@ -44,10 +44,4 @@ object CommonErrorCode{
   def checkUserAuthorityErrorRsp(msg: String) = ErrorRsp(1001404, msg)
 
 
-
-
-
-
-
-
 }

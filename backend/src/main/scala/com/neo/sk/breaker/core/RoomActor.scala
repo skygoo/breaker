@@ -10,7 +10,7 @@ import akka.stream.scaladsl.Flow
 import com.neo.sk.breaker.common.{AppSettings, Constants}
 import com.neo.sk.breaker.core.RoomManager.Command
 import com.neo.sk.breaker.core.game.GameContainerServerImpl
-import com.neo.sk.breaker.protocol.ActorProtocol.{GameOver, JoinRoom, LeftRoom}
+import com.neo.sk.breaker.protocol.ActorProtocol.{GameOver, UserJoinRoom, LeftRoom}
 import com.neo.sk.breaker.shared.model.Constants.GameState
 import com.neo.sk.breaker.shared.protocol
 import com.neo.sk.breaker.shared.protocol.BreakerEvent
@@ -39,9 +39,12 @@ object RoomActor {
 
   private final case object GameLoopKey
 
+  private final case object GameWaitKey
+
   trait Command
 
   case object GameLoop extends Command
+  case object GameWaitOut extends Command
 
   case class WebSocketMsg(req: BreakerEvent.UserActionEvent) extends Command with RoomManager.Command
 
@@ -68,43 +71,80 @@ object RoomActor {
     log.debug(s"RoomActor-${roomId} start...")
     Behaviors.setup[Command] {
       ctx =>
+        implicit val stashBuffer = StashBuffer[Command](Int.MaxValue)
         Behaviors.withTimers[Command] {
           implicit timer =>
             val subscribersMap = mutable.HashMap[String, (ActorRef[UserActor.Command],ActorRef[BreakerEvent.WsMsgSource])]()
             implicit val sendBuffer = new MiddleBufferInJvm(81920)
             val gameContainer = GameContainerServerImpl(AppSettings.breakerGameConfig,log,ctx.self,dispatch(subscribersMap)
             )
-            idle(roomId, subscribersMap, gameContainer)
+            switchBehavior(ctx,"wait",wait(roomId, subscribersMap, gameContainer))
         }
     }
   }
 
-  def idle(
+  private def wait(
+                  roomId:Long,
+                  subscribersMap: mutable.HashMap[String, (ActorRef[UserActor.Command],ActorRef[BreakerEvent.WsMsgSource])],
+                  gameContainer: GameContainerServerImpl
+                  )(
+                    implicit timer: TimerScheduler[Command],
+                    sendBuffer: MiddleBufferInJvm,
+                    stashBuffer: StashBuffer[Command]
+                  ): Behavior[Command] = {
+    Behaviors.receive { (ctx, msg) =>
+      msg match {
+        case UserJoinRoom(userInfo,userActor,frontActor) =>
+          if(subscribersMap.size<2){
+            //remind 此处顺序不可变
+            if(subscribersMap.isEmpty){
+              timer.startSingleTimer(GameWaitKey,GameWaitOut,1.minutes)
+            }
+            gameContainer.joinGame(userInfo.playerId.getOrElse(""), userInfo.nickName,subscribersMap.nonEmpty, userActor,frontActor)
+            subscribersMap.put(userInfo.playerId.getOrElse(""),(userActor,frontActor))
+          }
+          if(subscribersMap.size>1){
+            timer.cancel(GameWaitKey)
+            log.info(s"room-$roomId start....")
+            gameContainer.startGame
+            //remind 同步全量数据
+            //            dispatch(subscribersMap)(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()))
+            subscribersMap.values.foreach(_._1 ! UserActor.DispatchMsg(BreakerEvent.Wrap(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())))
+            timer.startPeriodicTimer(GameLoopKey, GameLoop, gameContainer.config.frameDuration.millis)
+            switchBehavior(ctx,"idle",idle(roomId, subscribersMap, gameContainer))
+          }else{
+            Behaviors.same
+          }
+
+        case msg:LeftRoom=>
+          log.debug(s"roomActor left room:${msg.userInfo.playerId} in wait")
+          Behaviors.stopped
+
+        case GameWaitOut=>
+          //todo 添加Bot
+          dispatch(subscribersMap)(BreakerEvent.GameWaitOut)
+          subscribersMap.foreach(_._2._1 ! UserActor.ChangeBehaviorToInit(true))
+          Behaviors.stopped
+
+        case unKnow =>
+          log.warn(s"${ctx.self.path} recv a unknow msg=${msg}")
+          stashBuffer.stash(unKnow)
+          Behaviors.same
+      }
+      }
+    }
+
+  private def idle(
             roomId: Long,
             subscribersMap: mutable.HashMap[String, (ActorRef[UserActor.Command],ActorRef[BreakerEvent.WsMsgSource])],
             gameContainer: GameContainerServerImpl
           )(
             implicit timer: TimerScheduler[Command],
-            sendBuffer: MiddleBufferInJvm
+            sendBuffer: MiddleBufferInJvm,
+            stashBuffer: StashBuffer[Command]
           ): Behavior[Command] = {
     Behaviors.receive { (ctx, msg) =>
       msg match {
-        case JoinRoom(userInfo,userActor,frontActor) =>
-          if(subscribersMap.size<2){
-            //remind 此处顺序不可变
-            gameContainer.joinGame(userInfo.playerId.getOrElse(""), userInfo.nickName,subscribersMap.nonEmpty, userActor,frontActor)
-            subscribersMap.put(userInfo.playerId.getOrElse(""),(userActor,frontActor))
-          }
-          if(subscribersMap.size>1){
-            log.info(s"room-$roomId start....")
-            gameContainer.startGame
-            //remind 同步全量数据
-//            dispatch(subscribersMap)(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()))
-            subscribersMap.values.foreach(_._1 ! UserActor.DispatchMsg(BreakerEvent.Wrap(BreakerEvent.SyncGameAllState(gameContainer.getGameContainerAllState()).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())))
-            timer.startPeriodicTimer(GameLoopKey, GameLoop, gameContainer.config.frameDuration.millis)
-          }
-          idle(roomId, subscribersMap, gameContainer)
-
         case GameLoop =>
           gameContainer.update()
           if(gameContainer.systemFrame%20==0){
@@ -129,7 +169,7 @@ object RoomActor {
           subscribersMap.remove(msg.userInfo.playerId.getOrElse(""))
           Behaviors.same
 
-        case _ =>
+        case unKnow =>
           log.warn(s"${ctx.self.path} recv a unknow msg=${msg}")
           Behaviors.same
       }

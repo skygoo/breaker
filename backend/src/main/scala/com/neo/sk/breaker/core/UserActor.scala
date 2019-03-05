@@ -40,7 +40,7 @@ object UserActor {
   case class FailMsgFront(ex: Throwable) extends Command
 
   /**此消息用于外部控制状态转入初始状态，以便于重建WebSocket*/
-  case object ChangeBehaviorToInit extends Command
+  final case class ChangeBehaviorToInit(stop:Boolean) extends Command
 
   case class UserFrontActor(actor:ActorRef[BreakerEvent.WsMsgSource]) extends Command
 
@@ -118,8 +118,12 @@ object UserActor {
           ctx.unwatch(actor)
           Behaviors.stopped
 
-        case ChangeBehaviorToInit=>
-          Behaviors.same
+        case msg:ChangeBehaviorToInit=>
+          if(msg.stop){
+            Behaviors.stopped
+          }else{
+            Behaviors.same
+          }
 
         case msg:TimeOut=>
           log.debug(s"${ctx.self.path} is time out when busy,msg=${msg.msg}")
@@ -148,7 +152,7 @@ object UserActor {
           reqOpt match {
             case Some(BreakerEvent.StartGame) =>
               log.info(s"$userInfo get ws msg startGame")
-              roomManager ! ActorProtocol.JoinRoom(userInfo,ctx.self,frontActor)
+              roomManager ! ActorProtocol.UserJoinRoom(userInfo,ctx.self,frontActor)
 
             case Some(t:BreakerEvent.PingPackage) =>
               frontActor ! BreakerEvent.Wrap(t.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
@@ -158,7 +162,7 @@ object UserActor {
           }
           Behaviors.same
 
-        case msg:ActorProtocol.JoinRoomSuccess=>
+        case msg:ActorProtocol.UserJoinRoomSuccess=>
           frontActor ! BreakerEvent.Wrap(BreakerEvent.YourInfo(msg.breaker.getBreakState(),msg.config).asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
           switchBehavior(ctx,"play",play(userInfo,frontActor,msg.roomActor))
 
@@ -168,11 +172,15 @@ object UserActor {
           roomManager ! ActorProtocol.LeftRoom(userInfo)
           Behaviors.stopped
 
-        case ChangeBehaviorToInit=>
-          frontActor ! BreakerEvent.Wrap(BreakerEvent.RebuildWebSocket.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
-          ctx.unwatch(frontActor)
-          roomManager ! ActorProtocol.LeftRoom(userInfo)
-          switchBehavior(ctx, "init", init(userInfo))
+        case msg:ChangeBehaviorToInit=>
+          if(msg.stop){
+            Behaviors.stopped
+          }else{
+            frontActor ! BreakerEvent.Wrap(BreakerEvent.RebuildWebSocket.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+            ctx.unwatch(frontActor)
+            roomManager ! ActorProtocol.LeftRoom(userInfo)
+            switchBehavior(ctx, "init", init(userInfo))
+          }
 
         case msg:TimeOut=>
           log.debug(s"${ctx.self.path} is time out when busy,msg=${msg.msg}")
@@ -201,7 +209,7 @@ object UserActor {
               case BreakerEvent.StopWebSocket=>
                 ctx.unwatch(frontActor)
                 roomManager ! ActorProtocol.LeftRoom(userInfo)
-                switchBehavior(ctx, "init", init(userInfo))
+                Behaviors.stopped
 
               case t:BreakerEvent.UserActionEvent =>
                 roomActor ! RoomActor.WebSocketMsg(t)
@@ -230,11 +238,15 @@ object UserActor {
           roomManager ! ActorProtocol.LeftRoom(userInfo)
           Behaviors.stopped
 
-        case ChangeBehaviorToInit=>
-          frontActor ! BreakerEvent.Wrap(BreakerEvent.RebuildWebSocket.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
-          ctx.unwatch(frontActor)
-          roomManager ! ActorProtocol.LeftRoom(userInfo)
-          switchBehavior(ctx, "init", init(userInfo))
+        case msg:ChangeBehaviorToInit=>
+          if(msg.stop){
+            Behaviors.stopped
+          }else{
+            frontActor ! BreakerEvent.Wrap(BreakerEvent.RebuildWebSocket.asInstanceOf[BreakerEvent.WsMsgServer].fillMiddleBuffer(sendBuffer).result())
+            ctx.unwatch(frontActor)
+            roomManager ! ActorProtocol.LeftRoom(userInfo)
+            switchBehavior(ctx, "init", init(userInfo))
+          }
 
         case msg:TimeOut=>
           log.debug(s"${ctx.self.path} is time out when busy,msg=${msg.msg}")

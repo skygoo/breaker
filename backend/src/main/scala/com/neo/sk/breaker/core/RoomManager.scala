@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer, TimerScheduler}
-import com.neo.sk.breaker.protocol.ActorProtocol.{JoinRoom, JoinRoomFail,LeftRoom}
+import com.neo.sk.breaker.protocol.ActorProtocol.{UserJoinRoom, JoinRoomFail,LeftRoom}
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
@@ -43,7 +43,7 @@ object RoomManager {
           (implicit stashBuffer: StashBuffer[Command], timer: TimerScheduler[Command]) = {
     Behaviors.receive[Command] { (ctx, msg) =>
       msg match {
-        case msg:JoinRoom =>
+        case msg:UserJoinRoom =>
           roomInUse.find(p => p._2.length < 2).toList.sortBy(_._1).headOption match {
             case Some(t) =>
               roomInUse.put(t._1, (msg.userInfo.playerId.getOrElse(""), msg.userInfo.nickName) :: t._2)

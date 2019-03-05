@@ -53,6 +53,7 @@ object BreakerEvent {
   /**异地登录消息
     * WebSocket连接重新建立*/
   case object RebuildWebSocket extends WsMsgServer
+  case object GameWaitOut extends WsMsgServer
 
   sealed trait GameEvent {
     val frame:Int

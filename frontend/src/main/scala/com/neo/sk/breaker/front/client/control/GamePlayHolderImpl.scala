@@ -172,6 +172,7 @@ case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) e
         Shortcut.cancelSchedule(timer)
         timer = Shortcut.schedule(gameLoop, 100)
         setGameState(GameState.loadingWait)
+        decTime(60)
 
       case e: BreakerEvent.YourInfo =>
 
@@ -204,8 +205,13 @@ case class GamePlayHolderImpl(name: String, playerInfo: UserProtocol.UserInfo) e
         gameContainerOpt.foreach(_.receiveGameEvent(e))
 
       case BreakerEvent.RebuildWebSocket =>
-        drawReplayMsg("存在异地登录。。")
+        drawInfoMsg("存在异地登录。。")
         closeHolder
+
+      case BreakerEvent.GameWaitOut=>
+        drawInfoMsg("等待超时")
+        closeHolder
+        Shortcut.scheduleOnce(()=>Shortcut.redirect(""),1500)
 
       case e: PingPackage =>
         receivePingPackage(e)

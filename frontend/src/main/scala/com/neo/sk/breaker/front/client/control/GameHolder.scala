@@ -31,7 +31,7 @@ abstract class GameHolder(name: String) extends NetworkInfo {
   protected var canvasUnit = getCanvasUnit(canvasHeight)
   protected var canvasBoundary = Point(canvasWidth, canvasHeight) / canvasUnit
 
-  println(s"test111111111111=${canvasUnit},=${canvasWidth}")
+  println(s"test111111111111=$canvasUnit,=$canvasWidth")
 
   var versionInfoOpt:Option[String]=None
   val versionScript = dom.document.getElementById("js-version")
@@ -60,25 +60,17 @@ abstract class GameHolder(name: String) extends NetworkInfo {
   /**
     * 倒计时，config
     **/
-  protected val reStartInterval = 1000
-  protected val countDown = 3
-  protected var countDownTimes = countDown
+  protected var waitTime=0
+
   protected var nextFrame = 0
   protected var logicFrameTime = System.currentTimeMillis()
 
-  //fixme 此处打印渲染时间
-  /*private var renderTime:Long = 0
-  private var renderTimes = 0
-
-  Shortcut.schedule( () =>{
-    if(renderTimes != 0){
-      println(s"render page use avg time:${renderTime / renderTimes}ms")
-    }else{
-      println(s"render page use avg time:0 ms")
+  protected def decTime(max:Int): Unit ={
+    waitTime+=1
+    if(waitTime<max){
+      Shortcut.scheduleOnce(()=>decTime(max),1000)
     }
-    renderTime = 0
-    renderTimes = 0
-  }, 5000L)*/
+  }
 
   private def onVisibilityChanged = { e: Event =>
     if (dom.document.visibilityState == VisibilityState.visible) {
@@ -142,11 +134,10 @@ abstract class GameHolder(name: String) extends NetworkInfo {
     checkScreenSize
     gameState match {
       case GameState.loadingPlay =>
-        println(s"等待同步数据")
-        drawWebLoading()
+        drawInfoMsg("请稍等，连接服务器中")
 
       case GameState.loadingWait =>
-        drawGameLoading()
+        drawInfoMsg(s"匹配游戏中...${60-waitTime} s")
         ping()
 
       case GameState.play =>
@@ -190,28 +181,7 @@ abstract class GameHolder(name: String) extends NetworkInfo {
 
   protected def getCanvasUnit(canvasHeight: Float): Float = canvasHeight / Constants.WindowView.y
 
-  def drawWebLoading():Unit = {
-    ctx.setFill("rgb(0,0,0)")
-    ctx.fillRec(0, 0, canvasBoundary.x * canvasUnit, canvasBoundary.y * canvasUnit)
-    ctx.setFill("rgb(250, 250, 250)")
-    ctx.setTextAlign("left")
-    ctx.setTextBaseline("top")
-    ctx.setFont(s"Helvetica","normal",3.6 * canvasUnit)
-    ctx.fillText("请稍等，连接服务器中", 150, 180)
-  }
-
-  def drawGameLoading():Unit = {
-    println("数据连接中")
-    ctx.setFill("rgb(0,0,0)")
-    ctx.fillRec(0, 0, canvasBoundary.x * canvasUnit, canvasBoundary.y * canvasUnit)
-    ctx.setFill("rgb(250, 250, 250)")
-    ctx.setTextAlign("left")
-    ctx.setTextBaseline("top")
-    ctx.setFont(s"Helvetica","normal",3.6 * canvasUnit)
-    ctx.fillText("请稍等，匹配游戏中", 150, 180)
-  }
-
-  def drawReplayMsg(m:String):Unit = {
+  protected def drawInfoMsg(m:String):Unit = {
     ctx.setFill("rgb(0,0,0)")
     ctx.fillRec(0, 0, canvasBoundary.x * canvasUnit, canvasBoundary.y * canvasUnit)
     ctx.setFill("rgb(250, 250, 250)")
@@ -219,6 +189,6 @@ abstract class GameHolder(name: String) extends NetworkInfo {
     ctx.setTextBaseline("top")
     ctx.setFont(s"Helvetica","normal",3.6 * canvasUnit)
     ctx.fillText(m, 150, 180)
-    println()
+    println(m)
   }
 }
